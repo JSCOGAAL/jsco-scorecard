@@ -405,19 +405,19 @@ function parseLeads(text) {
     const soldBy     = (row['Sold By'] || '').trim();
     const custName   = (row['Customer Name'] || '').trim();
 
-    // Skip explicit NO leads and rows with no customer name
-    if (actualLead === 'NO' || !custName) continue;
+    // Only process confirmed YES leads
+    if (actualLead !== 'YES' || !custName) continue;
 
-    // Awaiting assignment: blank Actual Lead with no rep assigned
-    if (actualLead !== 'YES') {
+    leads.push(row);
+
+    // Awaiting assignment: YES lead with no rep assigned yet
+    if (!soldBy) {
       if (!reps['Unassigned']) reps['Unassigned'] = { leads:0, sold:0, open:0, rev:0, pending:[] };
       reps['Unassigned'].leads++;
       reps['Unassigned'].open++;
       reps['Unassigned'].pending.push({ name: custName, date: row['Date'] });
       continue;
     }
-
-    leads.push(row);
 
     const d = parseDate(row['Date'] || '');
     const mKey = d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : 'unknown';
