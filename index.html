@@ -876,18 +876,40 @@ function render() {
           </tr>
         </thead>
         <tbody>
-          ${repsData && repsData.length ? repsData.map(r => {
-            const pillCls = r.closeRate >= 70 ? 'g' : r.closeRate >= 55 ? 'y' : 'r';
-            return `<tr>
-              <td>${r.name}</td>
-              <td>${r.opps}</td>
-              <td>${r.closed}</td>
-              <td>${r.wip}</td>
-              <td><span class="rep-pill ${pillCls}">${r.closeRate.toFixed(1)}%</span></td>
-              <td>${fmt(r.totalSales)}</td>
-              <td>${r.avgSale > 0 ? fmt(r.avgSale) : '—'}</td>
+          ${repsData && repsData.length ? (() => {
+            const rows = repsData.map(r => {
+              const pillCls = r.closeRate >= 70 ? 'g' : r.closeRate >= 55 ? 'y' : 'r';
+              return `<tr>
+                <td>${r.name}</td>
+                <td>${r.opps}</td>
+                <td>${r.closed}</td>
+                <td>${r.wip}</td>
+                <td><span class="rep-pill ${pillCls}">${r.closeRate.toFixed(1)}%</span></td>
+                <td>${fmt(r.totalSales)}</td>
+                <td>${r.avgSale > 0 ? fmt(r.avgSale) : '—'}</td>
+              </tr>`;
+            }).join('');
+
+            // Totals
+            const totOpps    = repsData.reduce((s,r) => s + r.opps, 0);
+            const totClosed  = repsData.reduce((s,r) => s + r.closed, 0);
+            const totWip     = repsData.reduce((s,r) => s + r.wip, 0);
+            const totSales   = repsData.reduce((s,r) => s + r.totalSales, 0);
+            const totCloseR  = totOpps > 0 ? (totClosed / totOpps * 100) : 0;
+            const avgSaleAll = totClosed > 0 ? (totSales / totClosed) : 0;
+
+            const totalsRow = `<tr style="background:#F0F2F5;font-weight:700;border-top:2px solid var(--border);">
+              <td style="font-weight:700;">Total</td>
+              <td>${totOpps}</td>
+              <td>${totClosed}</td>
+              <td>${totWip}</td>
+              <td>${totCloseR.toFixed(1)}%</td>
+              <td>${fmt(totSales)}</td>
+              <td>${fmt(avgSaleAll)}</td>
             </tr>`;
-          }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--text-3);">Loading rep data...</td></tr>'}
+
+            return rows + totalsRow;
+          })() : '<tr><td colspan="7" style="text-align:center;color:var(--text-3);">Loading rep data...</td></tr>'}
         </tbody>
       </table>
     </div>
