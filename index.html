@@ -802,21 +802,27 @@ function render() {
         </thead>
         <tbody>
           ${leadsData ? Object.entries(leadsData.reps)
-            .filter(([rep]) => rep !== 'Unassigned' && rep !== 'Ben Mc')
-            .sort(([,a],[,b]) => b.leads - a.leads)
+            .filter(([rep]) => rep !== 'Ben Mc')
+            .sort(([a],[b]) => {
+              // Unassigned always goes to bottom
+              if (a === 'Unassigned') return 1;
+              if (b === 'Unassigned') return -1;
+              return leadsData.reps[b].leads - leadsData.reps[a].leads;
+            })
             .map(([rep, v]) => {
               const total = v.sold + v.open;
               const cr = total > 0 ? Math.round(v.sold / total * 100) : 0;
               const avg = v.sold > 0 ? Math.round(v.rev / v.sold) : 0;
               const pillCls = cr >= 70 ? 'g' : cr >= 55 ? 'y' : 'r';
-              return `<tr>
-                <td>${rep}</td>
+              const isUnassigned = rep === 'Unassigned';
+              return `<tr${isUnassigned ? ' style="background:#FEF9C3;"' : ''}>
+                <td>${isUnassigned ? '⚠️ Awaiting Assignment' : rep}</td>
                 <td>${v.leads}</td>
                 <td>${v.sold}</td>
                 <td>${v.open}</td>
-                <td><span class="rep-pill ${pillCls}">${cr}%</span></td>
+                <td>${isUnassigned ? '<span style="color:#92400E;font-size:11px;">—</span>' : `<span class="rep-pill ${pillCls}">${cr}%</span>`}</td>
                 <td>${fmt(v.rev)}</td>
-                <td>${fmt(avg)}</td>
+                <td>${v.sold > 0 ? fmt(avg) : '—'}</td>
               </tr>`;
             }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--text-3);">Loading lead data...</td></tr>'}
         </tbody>
