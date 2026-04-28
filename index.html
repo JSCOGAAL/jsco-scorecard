@@ -297,8 +297,71 @@
     .settings-bar { gap: 14px; }
   }
 </style>
+<style>
+  /* ── PASSWORD GATE ──────────────────────────────────────── */
+  #pw-gate {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--navy);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #pw-gate.hidden { display: none; }
+  .pw-box {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px;
+    padding: 40px 44px;
+    width: 340px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  }
+  .pw-logo {
+    width: 48px; height: 48px; background: var(--orange);
+    border-radius: 10px; display: flex; align-items: center;
+    justify-content: center; margin: 0 auto 18px;
+  }
+  .pw-logo svg { width: 24px; height: 24px; fill: white; }
+  .pw-title { font-size: 18px; font-weight: 700; color: white; margin-bottom: 4px; letter-spacing: -.01em; }
+  .pw-sub { font-size: 12px; color: rgba(255,255,255,.45); margin-bottom: 24px; }
+  .pw-input {
+    width: 100%; padding: 11px 14px; border-radius: 8px;
+    border: 1.5px solid rgba(255,255,255,.15);
+    background: rgba(255,255,255,.07);
+    color: white; font-size: 15px; font-family: 'DM Sans', sans-serif;
+    text-align: center; letter-spacing: .1em;
+    outline: none; margin-bottom: 12px;
+    transition: border-color .15s;
+  }
+  .pw-input:focus { border-color: var(--orange); }
+  .pw-btn {
+    width: 100%; padding: 11px; border-radius: 8px;
+    background: var(--orange); border: none;
+    color: white; font-size: 14px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: opacity .15s;
+  }
+  .pw-btn:hover { opacity: .88; }
+  .pw-error {
+    font-size: 12px; color: #F87171;
+    margin-top: 10px; min-height: 18px;
+  }
+</style>
 </head>
 <body>
+
+<!-- PASSWORD GATE -->
+<div id="pw-gate">
+  <div class="pw-box">
+    <div class="pw-logo">
+      <svg viewBox="0 0 20 20"><path d="M10 2L3 7v11h5v-5h4v5h5V7L10 2z"/></svg>
+    </div>
+    <div class="pw-title">Jackson Services</div>
+    <div class="pw-sub">Daily Win Scorecard — Enter password to continue</div>
+    <input class="pw-input" type="password" id="pw-input" placeholder="Password"
+      onkeydown="if(event.key==='Enter') checkPassword()">
+    <button class="pw-btn" onclick="checkPassword()">Enter</button>
+    <div class="pw-error" id="pw-error"></div>
+  </div>
+</div>
 
 <div class="header">
   <div class="header-brand">
@@ -831,26 +894,6 @@ function render() {
         <div class="lead-note">${MONTH_LABEL} goal: ${LEAD_GOALS.installTotal} leads</div>
       </div>
       <div class="lead-cell">
-        <div class="lead-label">MTD close rate</div>
-        <div class="lead-value">${leadsData && leadsData.curMonth.leads > 0 ? Math.round(leadsData.curMonth.sold / leadsData.curMonth.leads * 100) + '%' : '—'}</div>
-        <div class="lead-note">Target: ${LEAD_GOALS.closeRatePct}%</div>
-      </div>
-      <div class="lead-cell">
-        <div class="lead-label">Open pipeline</div>
-        <div class="lead-value">${leadsData ? leadsData.totalOpen : '—'}</div>
-        <div class="lead-note">Active pending leads</div>
-      </div>
-      <div class="lead-cell">
-        <div class="lead-label">Avg ticket</div>
-        <div class="lead-value">${leadsData ? fmt(leadsData.avgTicket) : '—'}</div>
-        <div class="lead-note">Target ${fmt(LEAD_GOALS.avgTicket)}</div>
-      </div>
-      <div class="lead-cell">
-        <div class="lead-label">MTD sold</div>
-        <div class="lead-value">${leadsData ? leadsData.curMonth.sold : '—'}</div>
-        <div class="lead-note">${MONTH_LABEL} goal: ${LEAD_GOALS.installCloses} closes</div>
-      </div>
-      <div class="lead-cell">
         <div class="lead-label">Leads / day needed</div>
         <div class="lead-value">${LEAD_GOALS.installPerDay}</div>
         <div class="lead-note">PTU expected: ${LEAD_GOALS.ptuLeads}/mo</div>
@@ -937,13 +980,40 @@ document.getElementById('days-worked').addEventListener('input', () => {
   render();
 });
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-document.getElementById('hdr-date').textContent =
-  new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+// ─── PASSWORD GATE ────────────────────────────────────────────────────────────
+const CORRECT_PASSWORD = 'bigpicture';
 
-loadData();
-// Auto-refresh every 5 minutes
-setInterval(loadData, 5 * 60 * 1000);
+function checkPassword() {
+  const input = document.getElementById('pw-input').value;
+  if (input === CORRECT_PASSWORD) {
+    document.getElementById('pw-gate').classList.add('hidden');
+    sessionStorage.setItem('js_auth', '1');
+    initApp();
+  } else {
+    const err = document.getElementById('pw-error');
+    err.textContent = 'Incorrect password — try again';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+    setTimeout(() => err.textContent = '', 3000);
+  }
+}
+
+function initApp() {
+  document.getElementById('hdr-date').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  loadData();
+  setInterval(loadData, 5 * 60 * 1000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+// Check if already authenticated this session
+if (sessionStorage.getItem('js_auth') === '1') {
+  document.getElementById('pw-gate').classList.add('hidden');
+  initApp();
+} else {
+  // Focus password field on load
+  setTimeout(() => document.getElementById('pw-input').focus(), 100);
+}
 </script>
 </body>
 </html>
