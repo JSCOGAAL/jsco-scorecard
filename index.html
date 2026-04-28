@@ -156,7 +156,7 @@
     font-size: 15px; flex-shrink: 0;
   }
   .card-name { font-size: 15px; font-weight: 700; color: white; letter-spacing: -.01em; }
-  .card-mtd-label { font-size: 10px; color: rgba(255,255,255,.6); margin-top: 1px; }
+  .card-sublabel { font-size: 11px; color: rgba(255,255,255,.65); margin-top: 2px; }
   .card-pace-badge {
     font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
     white-space: nowrap; flex-shrink: 0;
@@ -185,31 +185,34 @@
   .win-base-amt { font-size: 18px; font-weight: 600; color: var(--text-2); letter-spacing: -.02em; }
   .win-base-note { font-size: 10px; color: var(--text-3); margin-top: 2px; }
 
-  /* Sub-lines */
-  .sub-lines { background: #F8F9FB; padding: 10px 14px 12px; border-bottom: 1px solid var(--border-light); display: flex; flex-direction: column; gap: 8px; }
-  .sub-line {
-    background: white; border: 1px solid var(--border);
-    border-radius: 8px; padding: 9px 12px;
-    display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  }
-  .sub-name { font-size: 11px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; }
-  .sub-detail { font-size: 11px; color: var(--text-3); margin-top: 2px; }
-  .sub-right { text-align: right; flex-shrink: 0; }
-  .sub-catchup { font-size: 15px; font-weight: 700; color: var(--text); }
-  .sub-base { font-size: 11px; color: var(--text-3); margin-top: 1px; }
-
-  /* Stats footer */
-  .stats-row {
+  /* Card metrics — MTD / goal / avg ticket row */
+  .card-metrics {
     display: grid; grid-template-columns: 1fr 1fr 1fr;
-    background: #F8F9FB; margin-top: auto;
+    border-bottom: 2px solid var(--border);
+    background: #F0F2F5;
   }
-  .stat {
-    padding: 9px 12px; border-top: 1px solid var(--border);
+  .metric {
+    padding: 10px 14px;
+    border-right: 1px solid var(--border);
+  }
+  .metric:last-child { border-right: none; }
+  .metric-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); margin-bottom: 3px; }
+  .metric-value { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+
+  /* Card stats — ops row at bottom */
+  .card-stats {
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+    background: var(--surface);
+  }
+  .cstat {
+    padding: 10px 10px;
+    border-top: 2px solid var(--border);
     border-right: 1px solid var(--border-light);
+    text-align: center;
   }
-  .stat:last-child { border-right: none; }
-  .stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); margin-bottom: 2px; }
-  .stat-value { font-size: 14px; font-weight: 600; color: var(--text); }
+  .cstat:last-child { border-right: none; }
+  .cstat-val { font-size: 16px; font-weight: 700; color: var(--text); }
+  .cstat-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); margin-top: 2px; }
 
   /* ── LEAD GRID ──────────────────────────────────────────── */
   .lead-grid {
@@ -357,13 +360,6 @@ BUDGET.residential = BUDGET.resInstall + BUDGET.resService;
 BUDGET.commercial  = BUDGET.commInstall + BUDGET.commService;
 BUDGET.total       = BUDGET.residential + BUDGET.plumbing + BUDGET.commercial + BUDGET.apartments;
 
-// ─── DEPT COLORS ─────────────────────────────────────────────────────────────
-const COLORS = {
-  residential: '#E05C1A',
-  plumbing:    '#2563EB',
-  commercial:  '#6D28D9',
-  apartments:  '#0891B2',
-};
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let liveData = null;
@@ -437,81 +433,69 @@ function sum(keys, field) {
 }
 
 function getDepts() {
-  const d = liveData;
-  const resInstallKeys = ['HVAC Residential:AL Install','HVAC Residential:GA Install'];
-  const resServiceKeys = ['HVAC Residential:AL Service','HVAC Residential:GA Service',
-                          'Residential: AL Service Agreements','Residential: GA Service Agreements'];
-  const plumbKeys      = ['05_Plumbing:Service'];
-  const commInstallKeys= ['HVAC Mechanical:AL Install','HVAC Mechanical:GA Install'];
-  const commServiceKeys= ['HVAC Mechanical:AL Service','HVAC Mechanical:GA Service',
-                          'Mechanical AL Service Agreements','Mechanical GA Service Agreements'];
-  const aptKeys        = ['HVAC AL Apartments','HVAC GA Apartments'];
-
   function merge(keys) {
     return {
-      revenue:  sum(keys, 'Completed Revenue'),
-      opps:     sum(keys, 'Opportunity'),
-      conv:     sum(keys, 'Converted Jobs'),
-      completed:sum(keys, 'Completed Jobs'),
-      canceled: sum(keys, 'Canceled Jobs'),
-      recalls:  sum(keys, 'Recall Jobs'),
+      revenue:   sum(keys, 'Completed Revenue'),
+      opps:      sum(keys, 'Opportunity'),
+      conv:      sum(keys, 'Converted Jobs'),
+      completed: sum(keys, 'Completed Jobs'),
+      canceled:  sum(keys, 'Canceled Jobs'),
+      recalls:   sum(keys, 'Recall Jobs'),
     };
   }
 
-  const resInstall  = merge(resInstallKeys);
-  const resService  = merge(resServiceKeys);
-  const commInstall = merge(commInstallKeys);
-  const commService = merge(commServiceKeys);
-
-  resInstall.budget  = BUDGET.resInstall;
-  resService.budget  = BUDGET.resService;
-  commInstall.budget = BUDGET.commInstall;
-  commService.budget = BUDGET.commService;
-
-  return {
-    residential: {
-      name: 'Residential',
-      color: COLORS.residential,
-      budget: BUDGET.residential,
-      revenue: resInstall.revenue + resService.revenue,
-      opps: resInstall.opps + resService.opps,
-      conv: resInstall.conv + resService.conv,
-      completed: resInstall.completed + resService.completed,
-      canceled: resInstall.canceled + resService.canceled,
-      subs: [
-        { name: 'Install · Replacement', ...resInstall },
-        { name: 'Service · Demand + Agreements', ...resService },
-      ]
+  return [
+    {
+      name: 'Residential Install',
+      label: 'Replacement · New Systems',
+      icon: '🏠',
+      color: '#C2440F',
+      budget: BUDGET.resInstall,
+      ...merge(['HVAC Residential:AL Install','HVAC Residential:GA Install']),
     },
-    plumbing: {
+    {
+      name: 'Residential Service',
+      label: 'Demand + Maintenance Agreements',
+      icon: '🔨',
+      color: '#0369A1',
+      budget: BUDGET.resService,
+      ...merge(['HVAC Residential:AL Service','HVAC Residential:GA Service',
+                'Residential: AL Service Agreements','Residential: GA Service Agreements']),
+    },
+    {
       name: 'Plumbing',
-      color: COLORS.plumbing,
+      label: 'Service + Installs',
+      icon: '🔧',
+      color: '#0891B2',
       budget: BUDGET.plumbing,
-      ...merge(plumbKeys),
-      subs: null,
+      ...merge(['05_Plumbing:Service']),
     },
-    commercial: {
-      name: 'Commercial',
-      color: COLORS.commercial,
-      budget: BUDGET.commercial,
-      revenue: commInstall.revenue + commService.revenue,
-      opps: commInstall.opps + commService.opps,
-      conv: commInstall.conv + commService.conv,
-      completed: commInstall.completed + commService.completed,
-      canceled: commInstall.canceled + commService.canceled,
-      subs: [
-        { name: 'Install · Replacement', ...commInstall },
-        { name: 'Service + Maintenance', ...commService },
-      ]
+    {
+      name: 'Commercial Install',
+      label: 'Replacement · New Systems',
+      icon: '🏢',
+      color: '#5B21B6',
+      budget: BUDGET.commInstall,
+      ...merge(['HVAC Mechanical:AL Install','HVAC Mechanical:GA Install']),
     },
-    apartments: {
+    {
+      name: 'Commercial Service',
+      label: 'Service + Maintenance Agreements',
+      icon: '⚙️',
+      color: '#6D28D9',
+      budget: BUDGET.commService,
+      ...merge(['HVAC Mechanical:AL Service','HVAC Mechanical:GA Service',
+                'Mechanical AL Service Agreements','Mechanical GA Service Agreements']),
+    },
+    {
       name: 'Apartments',
-      color: COLORS.apartments,
+      label: 'Multi-Family Service + Install',
+      icon: '🏗️',
+      color: '#0F766E',
       budget: BUDGET.apartments,
-      ...merge(aptKeys),
-      subs: null,
+      ...merge(['HVAC AL Apartments','HVAC GA Apartments']),
     },
-  };
+  ];
 }
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
@@ -523,17 +507,15 @@ function render() {
   const daysLeft   = Math.max(1, totalDays - daysWorked);
   document.getElementById('days-left').value = daysLeft;
 
-  const depts = getDepts();
-  const totalRev = Object.values(depts).reduce((a,d) => a + d.revenue, 0);
-  const totalOpps = Object.values(depts).reduce((a,d) => a + d.opps, 0);
-  const totalConv = Object.values(depts).reduce((a,d) => a + d.conv, 0);
-  const totalCanceled = Object.values(depts).reduce((a,d) => a + d.canceled, 0);
+  const depts     = getDepts();
+  const totalRev  = depts.reduce((a,d) => a + d.revenue, 0);
+  const totalOpps = depts.reduce((a,d) => a + d.opps, 0);
+  const totalConv = depts.reduce((a,d) => a + d.conv, 0);
 
   const totalCatchup = Math.max(0, BUDGET.total - totalRev) / daysLeft;
   const totalBase    = BUDGET.total / totalDays;
 
-  const fmt  = n => '$' + Math.round(n).toLocaleString('en-US');
-  const fpct = n => Math.round(n) + '%';
+  const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
 
   function paceClass(actual, budget) {
     const pct = actual / budget * 100;
@@ -542,73 +524,81 @@ function render() {
     return 'bad';
   }
   function paceBadgeText(actual, budget) {
-    const p = actual / budget * 100;
-    const diff = Math.round(p - 100);
+    const diff = Math.round(actual / budget * 100 - 100);
     return (diff >= 0 ? '+' : '') + diff + '% to goal';
   }
 
-  function buildCard(dept) {
-    const baseDaily = dept.budget / totalDays;
-    const remaining = Math.max(0, dept.budget - dept.revenue);
+  function buildCard(d) {
+    const baseDaily = d.budget / totalDays;
+    const remaining = Math.max(0, d.budget - d.revenue);
     const catchup   = remaining / daysLeft;
-    const barW      = Math.min(100, Math.round(dept.revenue / dept.budget * 100));
-    const pc        = paceClass(dept.revenue, dept.budget);
-    const convPct   = dept.opps > 0 ? Math.round(dept.conv / dept.opps * 100) : 0;
-    const icons     = { 'Residential':'🏠', 'Plumbing':'🔧', 'Commercial':'🏢', 'Apartments':'🏗️' };
-
-    let subsHtml = '';
-    if (dept.subs) {
-      subsHtml = '<div class="sub-lines">';
-      dept.subs.forEach(s => {
-        const sBase    = s.budget / totalDays;
-        const sRemain  = Math.max(0, s.budget - s.revenue);
-        const sCatchup = sRemain / daysLeft;
-        const sConvPct = s.opps > 0 ? Math.round(s.conv / s.opps * 100) : 0;
-        subsHtml += `
-          <div class="sub-line">
-            <div class="sub-left">
-              <div class="sub-name">${s.name}</div>
-              <div class="sub-detail">MTD ${fmt(s.revenue)} &nbsp;·&nbsp; ${s.opps} opps &nbsp;·&nbsp; ${sConvPct}% conv &nbsp;·&nbsp; ${s.completed} jobs</div>
-            </div>
-            <div class="sub-right">
-              <div class="sub-catchup">${fmt(sCatchup)}</div>
-              <div class="sub-base">base ${fmt(sBase)}/day</div>
-            </div>
-          </div>`;
-      });
-      subsHtml += '</div>';
-    }
+    const barW      = Math.min(100, Math.round(d.revenue / d.budget * 100));
+    const pc        = paceClass(d.revenue, d.budget);
+    const convPct   = d.opps > 0 ? Math.round(d.conv / d.opps * 100) : 0;
+    const avgTicket = d.completed > 0 ? d.revenue / d.completed : 0;
 
     return `
       <div class="dept-card">
-        <div class="card-hdr" style="background:${dept.color};">
+        <div class="card-hdr" style="background:${d.color};">
           <div class="card-hdr-left">
-            <div class="card-icon">${icons[dept.name] || '📊'}</div>
+            <div class="card-icon">${d.icon}</div>
             <div>
-              <div class="card-name">${dept.name}</div>
-              <div class="card-mtd-label">MTD ${fmt(dept.revenue)} &nbsp;·&nbsp; goal ${fmt(dept.budget)}</div>
+              <div class="card-name">${d.name}</div>
+              <div class="card-sublabel">${d.label}</div>
             </div>
           </div>
-          <span class="card-pace-badge ${pc}">${paceBadgeText(dept.revenue, dept.budget)}</span>
+          <span class="card-pace-badge ${pc}">${paceBadgeText(d.revenue, d.budget)}</span>
         </div>
-        <div class="prog-wrap"><div class="prog-bar" style="width:${barW}%;background:${dept.color};"></div></div>
+
+        <div class="prog-wrap">
+          <div class="prog-bar" style="width:${barW}%;background:${d.color};"></div>
+        </div>
+
         <div class="win-zone">
           <div class="win-main">
             <div class="win-eyebrow">Need today to win</div>
-            <div class="win-amount" style="color:${dept.color};">${fmt(catchup)}</div>
-            <div class="win-sub">${fmt(remaining)} remaining &nbsp;÷&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left</div>
+            <div class="win-amount" style="color:${d.color};">${fmt(catchup)}</div>
+            <div class="win-sub">${fmt(remaining)} left &nbsp;÷&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining</div>
           </div>
           <div class="win-base-box">
             <div class="win-base-label">Base daily goal</div>
             <div class="win-base-amt">${fmt(baseDaily)}</div>
-            <div class="win-base-note">budget ÷ ${totalDays} days</div>
+            <div class="win-base-note">÷ ${totalDays} work days</div>
           </div>
         </div>
-        ${dept.subs ? subsHtml : ''}
-        <div class="stats-row">
-          <div class="stat"><div class="stat-label">Opps</div><div class="stat-value">${dept.opps.toLocaleString()}</div></div>
-          <div class="stat"><div class="stat-label">Conv %</div><div class="stat-value">${convPct}%</div></div>
-          <div class="stat"><div class="stat-label">Canceled</div><div class="stat-value">${dept.canceled}</div></div>
+
+        <div class="card-metrics">
+          <div class="metric">
+            <div class="metric-label">MTD Revenue</div>
+            <div class="metric-value">${fmt(d.revenue)}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Monthly Goal</div>
+            <div class="metric-value">${fmt(d.budget)}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Avg Ticket</div>
+            <div class="metric-value">${fmt(avgTicket)}</div>
+          </div>
+        </div>
+
+        <div class="card-stats">
+          <div class="cstat">
+            <div class="cstat-val">${d.opps}</div>
+            <div class="cstat-lbl">Opportunities</div>
+          </div>
+          <div class="cstat">
+            <div class="cstat-val">${convPct}%</div>
+            <div class="cstat-lbl">Conv. Rate</div>
+          </div>
+          <div class="cstat">
+            <div class="cstat-val">${d.completed}</div>
+            <div class="cstat-lbl">Jobs Done</div>
+          </div>
+          <div class="cstat">
+            <div class="cstat-val">${d.canceled}</div>
+            <div class="cstat-lbl">Canceled</div>
+          </div>
         </div>
       </div>`;
   }
@@ -616,12 +606,15 @@ function render() {
   const html = `
     ${totalRev < BUDGET.total * 0.5 && daysWorked > 5 ? '<div class="error-state">⚠️ Revenue looks low vs days worked — verify the sheet is showing the correct month.</div>' : ''}
 
-    <div class="section-heading"><span class="section-heading-text">Company total</span><div class="section-heading-line"></div></div>
+    <div class="section-heading">
+      <span class="section-heading-text">Company total</span>
+      <div class="section-heading-line"></div>
+    </div>
     <div class="company-strip">
       <div class="cs-cell highlight">
         <div class="cs-label">Need today (catch-up)</div>
         <div class="cs-value">${fmt(totalCatchup)}</div>
-        <div class="cs-note">${fmt(Math.max(0, BUDGET.total - totalRev))} remaining ÷ ${daysLeft} day${daysLeft !== 1 ? 's' : ''}</div>
+        <div class="cs-note">${fmt(Math.max(0, BUDGET.total - totalRev))} left ÷ ${daysLeft} day${daysLeft !== 1 ? 's' : ''}</div>
       </div>
       <div class="cs-cell">
         <div class="cs-label">Base daily goal</div>
@@ -641,18 +634,24 @@ function render() {
       <div class="cs-cell">
         <div class="cs-label">Total opps</div>
         <div class="cs-value">${totalOpps.toLocaleString()}</div>
-        <div class="cs-note">${Math.round(totalConv/totalOpps*100)}% conversion rate</div>
+        <div class="cs-note">${Math.round(totalConv/totalOpps*100)}% conv. rate</div>
       </div>
     </div>
 
-    <div class="section-heading"><span class="section-heading-text">What each department needs today</span><div class="section-heading-line"></div></div>
+    <div class="section-heading">
+      <span class="section-heading-text">What each department needs today</span>
+      <div class="section-heading-line"></div>
+    </div>
     <div class="dept-grid">
-      ${Object.values(depts).map(buildCard).join('')}
+      ${depts.map(buildCard).join('')}
     </div>
 
     <hr>
 
-    <div class="section-heading"><span class="section-heading-text">Residential install — replacement lead targets</span><div class="section-heading-line"></div></div>
+    <div class="section-heading">
+      <span class="section-heading-text">Residential install — replacement lead targets</span>
+      <div class="section-heading-line"></div>
+    </div>
     <div class="lead-grid">
       <div class="lead-cell">
         <div class="lead-label">Leads needed / day</div>
@@ -686,19 +685,17 @@ function render() {
       </div>
     </div>
 
-    <div class="section-heading"><span class="section-heading-text">Sales rep performance — residential install</span><div class="section-heading-line"></div></div>
+    <div class="section-heading">
+      <span class="section-heading-text">Sales rep performance — residential install</span>
+      <div class="section-heading-line"></div>
+    </div>
     <div class="rep-card">
       <div class="rep-card-hdr">Sales Rep Leaderboard — Residential Install</div>
       <table class="rep">
         <thead>
           <tr>
-            <th>Rep</th>
-            <th>Leads</th>
-            <th>Sold</th>
-            <th>Open</th>
-            <th>Close %</th>
-            <th>Revenue</th>
-            <th>Avg ticket</th>
+            <th>Rep</th><th>Leads</th><th>Sold</th><th>Open</th>
+            <th>Close %</th><th>Revenue</th><th>Avg Ticket</th>
           </tr>
         </thead>
         <tbody>
@@ -711,9 +708,13 @@ function render() {
     </div>
 
     <div class="footer">
-      Jackson Services · May 2026 · GA + AL combined · Residential Service = Demand + Agreements · 
-      Data auto-refreshes from ServiceTitan via Google Sheets · Last pull: <span id="footer-time"></span>
+      Jackson Services · May 2026 · GA + AL combined · Data refreshes every 5 min from ServiceTitan via Google Sheets · Last pull: <span id="footer-time"></span>
     </div>`;
+
+  document.getElementById('content').innerHTML = html;
+  document.getElementById('footer-time').textContent =
+    new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
 
   document.getElementById('content').innerHTML = html;
   document.getElementById('footer-time').textContent =
