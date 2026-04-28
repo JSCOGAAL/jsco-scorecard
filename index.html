@@ -1,94 +1,745 @@
 <!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>Fetch Test</title>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jackson Services — Daily Win Scorecard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  body { font-family: monospace; padding: 20px; background: #111; color: #eee; }
-  .ok { color: #4ade80; }
-  .err { color: #f87171; }
-  .info { color: #94a3b8; }
-  pre { background: #1e293b; padding: 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0; font-size: 12px; white-space: pre-wrap; }
-  button { background: #E05C1A; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; margin: 4px; }
+  :root {
+    --orange: #E05C1A;
+    --orange-light: #FFF0E8;
+    --orange-mid: #F97316;
+    --navy: #0F1E35;
+    --navy-mid: #1A2E4A;
+    --green: #15803D;
+    --green-light: #DCFCE7;
+    --green-mid: #16A34A;
+    --amber: #B45309;
+    --amber-light: #FEF3C7;
+    --red: #B91C1C;
+    --red-light: #FEE2E2;
+    --border: #D1D5DB;
+    --border-light: #E5E7EB;
+    --bg: #ECEEF2;
+    --surface: #FFFFFF;
+    --text: #0F172A;
+    --text-2: #374151;
+    --text-3: #6B7280;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── HEADER ─────────────────────────────────────────────── */
+  .header {
+    background: var(--navy);
+    padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 58px; position: sticky; top: 0; z-index: 100;
+    border-bottom: 3px solid var(--orange);
+  }
+  .header-brand { display: flex; align-items: center; gap: 12px; }
+  .header-logo {
+    width: 34px; height: 34px; background: var(--orange);
+    border-radius: 7px; display: flex; align-items: center; justify-content: center;
+  }
+  .header-logo svg { width: 18px; height: 18px; fill: white; }
+  .header-title { font-size: 15px; font-weight: 600; color: white; letter-spacing: -.01em; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header-date { font-size: 12px; color: rgba(255,255,255,.5); font-family: 'DM Mono', monospace; }
+  .refresh-btn {
+    font-size: 12px; font-family: 'DM Sans', sans-serif;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+    color: rgba(255,255,255,.85); border-radius: 6px;
+    padding: 5px 14px; cursor: pointer; transition: background .15s;
+  }
+  .refresh-btn:hover { background: rgba(255,255,255,.22); }
+
+  /* ── SETTINGS BAR ───────────────────────────────────────── */
+  .settings-bar {
+    background: var(--navy-mid);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    padding: 10px 24px;
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  }
+  .setting-group { display: flex; align-items: center; gap: 8px; }
+  .setting-label { font-size: 12px; color: rgba(255,255,255,.55); white-space: nowrap; }
+  .setting-input {
+    font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500;
+    width: 54px; padding: 4px 8px;
+    border: 1px solid rgba(255,255,255,.2); border-radius: 6px;
+    color: white; text-align: center;
+    background: rgba(255,255,255,.1);
+  }
+  .setting-input:focus { outline: 2px solid var(--orange); outline-offset: -1px; border-color: transparent; }
+  .setting-input[readonly] { color: rgba(255,255,255,.4); background: rgba(255,255,255,.05); }
+  .settings-bar .spacer { flex: 1; }
+  .status-group { display: flex; align-items: center; gap: 7px; }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #4ADE80; display: inline-block; animation: pulse 2s infinite;
+  }
+  .status-dot.error { background: #F87171; animation: none; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  .status-text { font-size: 12px; color: rgba(255,255,255,.5); }
+  .last-updated { font-size: 11px; color: rgba(255,255,255,.35); font-family: 'DM Mono', monospace; }
+
+  /* ── MAIN ───────────────────────────────────────────────── */
+  .main { padding: 22px 24px 48px; max-width: 1240px; margin: 0 auto; }
+
+  /* ── SECTION HEADING ────────────────────────────────────── */
+  .section-heading {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 12px; margin-top: 8px;
+  }
+  .section-heading-text {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--text-2);
+  }
+  .section-heading-line { flex: 1; height: 1px; background: var(--border); }
+
+  /* ── COMPANY STRIP ──────────────────────────────────────── */
+  .company-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+    border-radius: 12px; overflow: hidden;
+    border: 2px solid var(--navy);
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.10);
+  }
+  .cs-cell {
+    background: var(--surface); padding: 16px 18px;
+    border-right: 1px solid var(--border);
+  }
+  .cs-cell:last-child { border-right: none; }
+  .cs-cell.highlight { background: var(--navy); }
+  .cs-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; color: var(--text-3); }
+  .cs-cell.highlight .cs-label { color: rgba(255,255,255,.55); }
+  .cs-value { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
+  .cs-cell.highlight .cs-value { color: var(--orange); }
+  .cs-note { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+  .cs-cell.highlight .cs-note { color: rgba(255,255,255,.4); }
+
+  /* ── DEPT GRID ──────────────────────────────────────────── */
+  .dept-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(275px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+  }
+
+  /* ── DEPT CARD ──────────────────────────────────────────── */
+  .dept-card {
+    border-radius: 12px; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 2px 6px rgba(0,0,0,.09);
+    border: 1.5px solid var(--border);
+  }
+
+  /* Card header — dark colored band */
+  .card-hdr {
+    padding: 13px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
+  }
+  .card-hdr-left { display: flex; align-items: center; gap: 10px; }
+  .card-icon {
+    width: 32px; height: 32px; border-radius: 7px;
+    background: rgba(255,255,255,.18);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .card-name { font-size: 15px; font-weight: 700; color: white; letter-spacing: -.01em; }
+  .card-sublabel { font-size: 11px; color: rgba(255,255,255,.65); margin-top: 2px; }
+  .card-pace-badge {
+    font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .card-pace-badge.good { background: rgba(74,222,128,.22); color: #86EFAC; }
+  .card-pace-badge.warn { background: rgba(251,191,36,.22); color: #FDE68A; }
+  .card-pace-badge.bad  { background: rgba(248,113,113,.22); color: #FCA5A5; }
+
+  /* Progress bar — sits between header and win zone, white track so fill is always visible */
+  .prog-wrap { height: 8px; background: #D1D5DB; border-top: 1px solid rgba(0,0,0,.08); }
+  .prog-bar { height: 100%; transition: width .8s ease; opacity: .85; }
+
+  /* WIN zone — the hero number */
+  .win-zone {
+    background: var(--surface);
+    padding: 14px 16px 12px;
+    border-bottom: 2px dashed var(--border);
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 8px;
+  }
+  .win-main {}
+  .win-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); margin-bottom: 4px; }
+  .win-amount { font-size: 34px; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
+  .win-sub { font-size: 11px; color: var(--text-3); margin-top: 5px; }
+  .win-base-box { text-align: right; flex-shrink: 0; }
+  .win-base-label { font-size: 10px; color: var(--text-3); margin-bottom: 3px; }
+  .win-base-amt { font-size: 18px; font-weight: 600; color: var(--text-2); letter-spacing: -.02em; }
+  .win-base-note { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+
+  /* Card metrics — MTD / goal / avg ticket row */
+  .card-metrics {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 2px solid var(--border);
+    background: #F0F2F5;
+  }
+  .metric {
+    padding: 10px 14px;
+    border-right: 1px solid var(--border);
+  }
+  .metric:last-child { border-right: none; }
+  .metric-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); margin-bottom: 3px; }
+  .metric-value { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+
+  /* Card stats — ops row at bottom */
+  .card-stats {
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+    background: var(--surface);
+  }
+  .cstat {
+    padding: 10px 10px;
+    border-top: 2px solid var(--border);
+    border-right: 1px solid var(--border-light);
+    text-align: center;
+  }
+  .cstat:last-child { border-right: none; }
+  .cstat-val { font-size: 16px; font-weight: 700; color: var(--text); }
+  .cstat-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); margin-top: 2px; }
+
+  /* ── LEAD GRID ──────────────────────────────────────────── */
+  .lead-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-bottom: 24px;
+  }
+  .lead-cell {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 13px 15px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .lead-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); margin-bottom: 6px; }
+  .lead-value { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
+  .lead-note { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+
+  /* ── REP TABLE ──────────────────────────────────────────── */
+  .rep-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 12px; overflow: hidden; margin-bottom: 24px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.07);
+  }
+  .rep-card-hdr {
+    background: var(--navy); padding: 12px 18px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: rgba(255,255,255,.7);
+  }
+  table.rep { width: 100%; border-collapse: collapse; }
+  table.rep th {
+    text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--text-3);
+    padding: 9px 16px; border-bottom: 2px solid var(--border);
+    background: #F8F9FB;
+  }
+  table.rep th:not(:first-child) { text-align: right; }
+  table.rep td { padding: 11px 16px; border-bottom: 1px solid var(--border-light); font-size: 13px; color: var(--text); }
+  table.rep td:not(:first-child) { text-align: right; font-family: 'DM Mono', monospace; font-size: 12px; }
+  table.rep tr:last-child td { border-bottom: none; }
+  table.rep tbody tr:hover td { background: #F8F9FB; }
+  .rep-pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; font-family: 'DM Sans', sans-serif; }
+  .rep-pill.g { background: var(--green-light); color: var(--green); }
+  .rep-pill.y { background: var(--amber-light); color: var(--amber); }
+  .rep-pill.r { background: var(--red-light); color: var(--red); }
+
+  /* ── LOADING / ERROR ────────────────────────────────────── */
+  .loading-state {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 320px; flex-direction: column; gap: 14px;
+  }
+  .spinner {
+    width: 30px; height: 30px; border: 3px solid var(--border);
+    border-top-color: var(--orange); border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 13px; color: var(--text-3); }
+  .error-state {
+    background: var(--red-light); border: 2px solid #FECACA;
+    border-radius: 10px; padding: 16px 20px; color: var(--red);
+    font-size: 13px; font-weight: 500; margin-bottom: 16px;
+  }
+
+  /* ── DIVIDER ────────────────────────────────────────────── */
+  hr { border: none; border-top: 2px solid var(--border); margin: 24px 0; }
+
+  /* ── FOOTER ─────────────────────────────────────────────── */
+  .footer { font-size: 11px; color: var(--text-3); text-align: center; padding-top: 8px; line-height: 1.7; }
+
+  /* ── MOBILE ─────────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    .main { padding: 14px 14px 36px; }
+    .header, .settings-bar { padding-left: 14px; padding-right: 14px; }
+    .win-amount { font-size: 28px; }
+    .header-date { display: none; }
+    .settings-bar { gap: 14px; }
+  }
 </style>
 </head>
 <body>
-<h2>Jackson Services — Fetch Diagnostic</h2>
-<p class="info">This page tests each fetch method and shows exactly what the browser receives.</p>
-<br>
-<button onclick="testDirect()">Test 1: Direct Sheet URL</button>
-<button onclick="testAppsScript()">Test 2: Apps Script URL</button>
-<button onclick="testProxy()">Test 3: corsproxy.io fallback</button>
-<div id="log"></div>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="header-logo">
+      <svg viewBox="0 0 20 20"><path d="M10 2L3 7v11h5v-5h4v5h5V7L10 2z"/></svg>
+    </div>
+    <div class="header-title">Jackson Services — Daily Win Scorecard</div>
+  </div>
+  <div class="header-right">
+    <span class="header-date" id="hdr-date">—</span>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</div>
+
+<div class="settings-bar">
+  <div class="setting-group">
+    <span class="setting-label">Work days in month</span>
+    <input class="setting-input" type="number" id="total-days" value="21" min="1" max="23" onchange="render()">
+  </div>
+  <div class="setting-group">
+    <span class="setting-label">Days worked so far</span>
+    <input class="setting-input" type="number" id="days-worked" value="20" min="0" max="23" onchange="render()">
+  </div>
+  <div class="setting-group">
+    <span class="setting-label">Days left (incl. today)</span>
+    <input class="setting-input" type="number" id="days-left" value="1" min="1" max="23" readonly style="background:#f0f0ee;color:#9CA3AF;">
+  </div>
+  <div class="spacer"></div>
+  <div class="status-group">
+    <span class="status-dot" id="status-dot"></span>
+    <span class="status-text" id="status-text">Loading...</span>
+    <span class="last-updated" id="last-updated"></span>
+  </div>
+</div>
+
+<div class="main">
+  <div id="content">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <div class="loading-text">Pulling live data from ServiceTitan...</div>
+    </div>
+  </div>
+</div>
 
 <script>
+// ─── CONFIG ─────────────────────────────────────────────────────────────────
+// ─── DATA SOURCE ─────────────────────────────────────────────────────────────
+// Direct published Google Sheet URL — same approach as the working service dashboard
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRu3_K61QZOfpy1mV8iReqJxMBGG1s-3EgEjqHpCt-FNBBknZC1u5PJcZ428knPq-D3DUNGY8QP2GZU/pub?output=csv';
-const APPS_URL  = 'https://script.google.com/macros/s/AKfycbzV0rhC4zsDtBCls4eJurdIdRxyDLF0SK1u9hL0mY8z_YgDU7u-bq8lp48yjc_Vso-4AA/exec';
 
-function log(msg, cls='info') {
-  const div = document.createElement('div');
-  div.className = cls;
-  div.textContent = msg;
-  document.getElementById('log').appendChild(div);
-}
-function logPre(txt) {
-  const pre = document.createElement('pre');
-  pre.textContent = txt;
-  document.getElementById('log').appendChild(pre);
-}
-function clear() { document.getElementById('log').innerHTML = ''; }
-
-async function testDirect() {
-  clear();
-  log('── Test 1: Direct published sheet URL ──');
-  log('URL: ' + SHEET_URL);
+// ─── FETCH ───────────────────────────────────────────────────────────────────
+async function getCSV(url) {
+  // Plain fetch — Google published sheets have CORS open on their redirect destination
   try {
-    const r = await fetch(SHEET_URL);
-    log('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'ok' : 'err');
-    log('Final URL: ' + r.url);
-    const text = await r.text();
-    log('First 200 chars of response:');
-    logPre(text.substring(0, 200));
-    log(text.startsWith('<') ? '❌ Got HTML not CSV' : '✅ Got CSV data', text.startsWith('<') ? 'err' : 'ok');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const r = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (r.ok) {
+      const t = await r.text();
+      if (!t.trim().startsWith('<')) return t;
+    }
+  } catch(e) {}
+  // Fallback proxy
+  const r2 = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+  return r2.text();
+}
+
+async function loadData() {
+  setStatus('loading');
+  try {
+    const text = await getCSV(SHEET_URL);
+    if (!text || !text.includes('Plumbing')) throw new Error('Bad data received');
+    liveData = parseCSV(text);
+    setStatus('ok');
+    document.getElementById('last-updated').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
+    render();
   } catch(e) {
-    log('❌ FAILED: ' + e.message, 'err');
-    log('Error name: ' + e.name, 'err');
+    setStatus('error', e.message || 'Unknown error');
   }
 }
 
-async function testAppsScript() {
-  clear();
-  log('── Test 2: Apps Script URL ──');
-  log('URL: ' + APPS_URL);
-  try {
-    const r = await fetch(APPS_URL);
-    log('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'ok' : 'err');
-    log('Final URL: ' + r.url);
-    const text = await r.text();
-    log('First 200 chars of response:');
-    logPre(text.substring(0, 200));
-    log(text.startsWith('<') ? '❌ Got HTML not CSV' : '✅ Got CSV data', text.startsWith('<') ? 'err' : 'ok');
-  } catch(e) {
-    log('❌ FAILED: ' + e.message, 'err');
-    log('Error name: ' + e.name, 'err');
-  }
+// ─── MAY 2026 BUDGET ─────────────────────────────────────────────────────────
+// To update monthly: swap these numbers when you upload the next budget sheet
+const BUDGET = {
+  resInstall:      750000,   // Residential Replacement
+  resService:      365000,   // Residential Service + Maintenance combined
+  plumbing:        270000,   // Plumbing
+  commInstall:     576000,   // Commercial Replacement
+  commService:     407000,   // Commercial Service + Maintenance combined
+  apartments:      325000,   // Apartments
+};
+BUDGET.residential = BUDGET.resInstall + BUDGET.resService;
+BUDGET.commercial  = BUDGET.commInstall + BUDGET.commService;
+BUDGET.total       = BUDGET.residential + BUDGET.plumbing + BUDGET.commercial + BUDGET.apartments;
+
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let liveData = null;
+
+
+function setStatus(state, msg) {
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  if (state === 'ok')         { dot.className='status-dot'; text.textContent='Live'; }
+  else if (state === 'error') { dot.className='status-dot error'; text.textContent='Error: ' + (msg || 'unknown'); }
+  else                        { dot.className='status-dot'; text.textContent='Loading...'; }
 }
 
-async function testProxy() {
-  clear();
-  log('── Test 3: corsproxy.io ──');
-  const url = 'https://corsproxy.io/?' + encodeURIComponent(SHEET_URL);
-  log('URL: ' + url);
-  try {
-    const r = await fetch(url);
-    log('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'ok' : 'err');
-    const text = await r.text();
-    log('First 200 chars of response:');
-    logPre(text.substring(0, 200));
-    log(text.startsWith('<') ? '❌ Got HTML not CSV' : '✅ Got CSV data', text.startsWith('<') ? 'err' : 'ok');
-  } catch(e) {
-    log('❌ FAILED: ' + e.message, 'err');
-    log('Error name: ' + e.name, 'err');
+// ─── PARSE CSV ───────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim());
+  const rows = {};
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    const name = cols[0].trim();
+    if (!name || /^\d+$/.test(name)) continue; // skip totals row
+    const obj = {};
+    headers.forEach((h, idx) => {
+      let val = (cols[idx] || '').trim().replace(/[$,%]/g, '');
+      obj[h] = isNaN(val) || val === '' ? val : parseFloat(val);
+    });
+    rows[name] = obj;
   }
+  return rows;
 }
+
+// ─── MERGE ROWS ───────────────────────────────────────────────────────────────
+function sum(keys, field) {
+  return keys.reduce((acc, k) => {
+    const row = liveData[k];
+    if (!row) return acc;
+    const v = row[field];
+    return acc + (typeof v === 'number' ? v : 0);
+  }, 0);
+}
+
+function getDepts() {
+  function merge(keys) {
+    return {
+      revenue:   sum(keys, 'Completed Revenue'),
+      opps:      sum(keys, 'Opportunity'),
+      conv:      sum(keys, 'Converted Jobs'),
+      completed: sum(keys, 'Completed Jobs'),
+      canceled:  sum(keys, 'Canceled Jobs'),
+      recalls:   sum(keys, 'Recall Jobs'),
+    };
+  }
+
+  return [
+    {
+      name: 'Residential Install',
+      label: 'Replacement · New Systems',
+      icon: '🏠',
+      color: '#C2440F',
+      budget: BUDGET.resInstall,
+      ...merge(['HVAC Residential:AL Install','HVAC Residential:GA Install']),
+    },
+    {
+      name: 'Residential Service',
+      label: 'Demand Service + Maintenance Agreements',
+      icon: '🔨',
+      color: '#0369A1',
+      budget: BUDGET.resService,
+      ...merge(['HVAC Residential:AL Service','HVAC Residential:GA Service',
+                'Residential: AL Service Agreements','Residential: GA Service Agreements']),
+    },
+    {
+      name: 'Plumbing',
+      label: 'Service + Installs',
+      icon: '🔧',
+      color: '#0891B2',
+      budget: BUDGET.plumbing,
+      ...merge(['05_Plumbing:Service']),
+    },
+    {
+      name: 'Commercial Install',
+      label: 'Replacement · New Systems',
+      icon: '🏢',
+      color: '#5B21B6',
+      budget: BUDGET.commInstall,
+      ...merge(['HVAC Mechanical:AL Install','HVAC Mechanical:GA Install']),
+    },
+    {
+      name: 'Commercial Service',
+      label: 'Service + Maintenance Agreements',
+      icon: '⚙️',
+      color: '#6D28D9',
+      budget: BUDGET.commService,
+      ...merge(['HVAC Mechanical:AL Service','HVAC Mechanical:GA Service',
+                'Mechanical AL Service Agreements','Mechanical GA Service Agreements']),
+    },
+    {
+      name: 'Apartments',
+      label: 'Multi-Family Service + Install',
+      icon: '🏗️',
+      color: '#0F766E',
+      budget: BUDGET.apartments,
+      ...merge(['HVAC AL Apartments','HVAC GA Apartments']),
+    },
+  ];
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  if (!liveData) return;
+
+  const totalDays  = parseInt(document.getElementById('total-days').value) || 21;
+  const daysWorked = parseInt(document.getElementById('days-worked').value) || 20;
+  const daysLeft   = Math.max(1, totalDays - daysWorked);
+  document.getElementById('days-left').value = daysLeft;
+
+  const depts     = getDepts();
+  const totalRev  = depts.reduce((a,d) => a + d.revenue, 0);
+  const totalOpps = depts.reduce((a,d) => a + d.opps, 0);
+  const totalConv = depts.reduce((a,d) => a + d.conv, 0);
+
+  const totalCatchup = Math.max(0, BUDGET.total - totalRev) / daysLeft;
+  const totalBase    = BUDGET.total / totalDays;
+
+  const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
+
+  function paceClass(actual, budget) {
+    const pct = actual / budget * 100;
+    if (pct >= 90) return 'good';
+    if (pct >= 70) return 'warn';
+    return 'bad';
+  }
+  function paceBadgeText(actual, budget) {
+    const diff = Math.round(actual / budget * 100 - 100);
+    return (diff >= 0 ? '+' : '') + diff + '% to goal';
+  }
+
+  function buildCard(d) {
+    const baseDaily = d.budget / totalDays;
+    const remaining = Math.max(0, d.budget - d.revenue);
+    const catchup   = remaining / daysLeft;
+    const barW      = Math.min(100, Math.round(d.revenue / d.budget * 100));
+    const pc        = paceClass(d.revenue, d.budget);
+    const convPct   = d.opps > 0 ? Math.round(d.conv / d.opps * 100) : 0;
+    const avgTicket = d.completed > 0 ? d.revenue / d.completed : 0;
+
+    return `
+      <div class="dept-card">
+        <div class="card-hdr" style="background:${d.color};">
+          <div class="card-hdr-left">
+            <div class="card-icon">${d.icon}</div>
+            <div>
+              <div class="card-name">${d.name}</div>
+              <div class="card-sublabel">${d.label}</div>
+            </div>
+          </div>
+          <span class="card-pace-badge ${pc}">${paceBadgeText(d.revenue, d.budget)}</span>
+        </div>
+
+        <div class="prog-wrap">
+          <div class="prog-bar" style="width:${barW}%;background:${d.color};"></div>
+        </div>
+
+        <div class="win-zone">
+          <div class="win-main">
+            <div class="win-eyebrow">Need today to win</div>
+            <div class="win-amount" style="color:${d.color};">${fmt(catchup)}</div>
+            <div class="win-sub">${fmt(remaining)} left &nbsp;÷&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining</div>
+          </div>
+          <div class="win-base-box">
+            <div class="win-base-label">Base daily goal</div>
+            <div class="win-base-amt">${fmt(baseDaily)}</div>
+            <div class="win-base-note">÷ ${totalDays} work days</div>
+          </div>
+        </div>
+
+        <div class="card-metrics">
+          <div class="metric">
+            <div class="metric-label">MTD Revenue</div>
+            <div class="metric-value">${fmt(d.revenue)}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Monthly Goal</div>
+            <div class="metric-value">${fmt(d.budget)}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Avg Ticket</div>
+            <div class="metric-value">${fmt(avgTicket)}</div>
+          </div>
+        </div>
+
+        <div class="card-stats">
+          <div class="cstat">
+            <div class="cstat-val">${d.opps}</div>
+            <div class="cstat-lbl">Opportunities</div>
+          </div>
+          <div class="cstat">
+            <div class="cstat-val">${convPct}%</div>
+            <div class="cstat-lbl">Conv. Rate</div>
+          </div>
+          <div class="cstat">
+            <div class="cstat-val">${d.completed}</div>
+            <div class="cstat-lbl">Jobs Done</div>
+          </div>
+          <div class="cstat">
+            <div class="cstat-val">${d.canceled}</div>
+            <div class="cstat-lbl">Canceled</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  const html = `
+    ${totalRev < BUDGET.total * 0.5 && daysWorked > 5 ? '<div class="error-state">⚠️ Revenue looks low vs days worked — verify the sheet is showing the correct month.</div>' : ''}
+
+    <div class="section-heading">
+      <span class="section-heading-text">Company total</span>
+      <div class="section-heading-line"></div>
+    </div>
+    <div class="company-strip">
+      <div class="cs-cell highlight">
+        <div class="cs-label">Need today (catch-up)</div>
+        <div class="cs-value">${fmt(totalCatchup)}</div>
+        <div class="cs-note">${fmt(Math.max(0, BUDGET.total - totalRev))} left ÷ ${daysLeft} day${daysLeft !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-label">Base daily goal</div>
+        <div class="cs-value">${fmt(totalBase)}</div>
+        <div class="cs-note">$${(BUDGET.total/1000).toFixed(0)}K ÷ ${totalDays} days</div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-label">MTD revenue</div>
+        <div class="cs-value">${fmt(totalRev)}</div>
+        <div class="cs-note">${daysWorked} days worked</div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-label">Monthly goal</div>
+        <div class="cs-value">${fmt(BUDGET.total)}</div>
+        <div class="cs-note">May 2026 budget</div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-label">Total opps</div>
+        <div class="cs-value">${totalOpps.toLocaleString()}</div>
+        <div class="cs-note">${Math.round(totalConv/totalOpps*100)}% conv. rate</div>
+      </div>
+    </div>
+
+    <div class="section-heading">
+      <span class="section-heading-text">What each department needs today</span>
+      <div class="section-heading-line"></div>
+    </div>
+    <div class="dept-grid">
+      ${depts.map(buildCard).join('')}
+    </div>
+
+    <hr>
+
+    <div class="section-heading">
+      <span class="section-heading-text">Residential install — replacement lead targets</span>
+      <div class="section-heading-line"></div>
+    </div>
+    <div class="lead-grid">
+      <div class="lead-cell">
+        <div class="lead-label">Leads needed / day</div>
+        <div class="lead-value">4.5</div>
+        <div class="lead-note">May budget target</div>
+      </div>
+      <div class="lead-cell">
+        <div class="lead-label">April close rate</div>
+        <div class="lead-value">74%</div>
+        <div class="lead-note">Target: 65% ✓</div>
+      </div>
+      <div class="lead-cell">
+        <div class="lead-label">Open pipeline</div>
+        <div class="lead-value">49</div>
+        <div class="lead-note">Active pending leads</div>
+      </div>
+      <div class="lead-cell">
+        <div class="lead-label">Avg ticket</div>
+        <div class="lead-value">$13,045</div>
+        <div class="lead-note">Target $13,000 ✓</div>
+      </div>
+      <div class="lead-cell">
+        <div class="lead-label">Sales / day (May)</div>
+        <div class="lead-value">2.9</div>
+        <div class="lead-note">61 closes ÷ 21 days</div>
+      </div>
+      <div class="lead-cell">
+        <div class="lead-label">PTU leads exp.</div>
+        <div class="lead-value">25</div>
+        <div class="lead-note">Per month</div>
+      </div>
+    </div>
+
+    <div class="section-heading">
+      <span class="section-heading-text">Sales rep performance — residential install</span>
+      <div class="section-heading-line"></div>
+    </div>
+    <div class="rep-card">
+      <div class="rep-card-hdr">Sales Rep Leaderboard — Residential Install</div>
+      <table class="rep">
+        <thead>
+          <tr>
+            <th>Rep</th><th>Leads</th><th>Sold</th><th>Open</th>
+            <th>Close %</th><th>Revenue</th><th>Avg Ticket</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Glen Strickland</td><td>48</td><td>26</td><td>22</td><td><span class="rep-pill y">54%</span></td><td>$384,142</td><td>$14,775</td></tr>
+          <tr><td>Taylor Mock</td><td>38</td><td>28</td><td>10</td><td><span class="rep-pill g">74%</span></td><td>$347,967</td><td>$12,427</td></tr>
+          <tr><td>Luke Thompson</td><td>32</td><td>20</td><td>12</td><td><span class="rep-pill y">62%</span></td><td>$252,736</td><td>$12,637</td></tr>
+          <tr><td>David Wade</td><td>9</td><td>5</td><td>4</td><td><span class="rep-pill y">56%</span></td><td>$53,216</td><td>$10,643</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      Jackson Services · May 2026 · GA + AL combined · Data refreshes every 5 min from ServiceTitan via Google Sheets · Last pull: <span id="footer-time"></span>
+    </div>`;
+
+  document.getElementById('content').innerHTML = html;
+  document.getElementById('footer-time').textContent =
+    new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+
+  document.getElementById('content').innerHTML = html;
+  document.getElementById('footer-time').textContent =
+    new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+
+// ─── DAYS-LEFT AUTO CALC ─────────────────────────────────────────────────────
+document.getElementById('total-days').addEventListener('input', () => {
+  const t = parseInt(document.getElementById('total-days').value) || 21;
+  const w = parseInt(document.getElementById('days-worked').value) || 0;
+  document.getElementById('days-left').value = Math.max(1, t - w);
+  render();
+});
+document.getElementById('days-worked').addEventListener('input', () => {
+  const t = parseInt(document.getElementById('total-days').value) || 21;
+  const w = parseInt(document.getElementById('days-worked').value) || 0;
+  document.getElementById('days-left').value = Math.max(1, t - w);
+  render();
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('hdr-date').textContent =
+  new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+loadData();
+// Auto-refresh every 5 minutes
+setInterval(loadData, 5 * 60 * 1000);
 </script>
 </body>
 </html>
