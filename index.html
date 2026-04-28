@@ -380,8 +380,12 @@ function parseLeads(text) {
   };
 
   const leads = [], reps = {}, months = {};
-  const now = new Date();
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  // Lock to the budget month from MONTH_LABEL (e.g. "April 2026" → "2026-04")
+  const monthMap = {january:'01',february:'02',march:'03',april:'04',may:'05',june:'06',
+                    july:'07',august:'08',september:'09',october:'10',november:'11',december:'12'};
+  const labelParts = MONTH_LABEL.toLowerCase().split(' ');
+  const thisMonth  = `${labelParts[1]}-${monthMap[labelParts[0]] || '01'}`;
 
   for (let i = 1; i < lines.length; i++) {
     // Handle quoted CSV fields
@@ -470,6 +474,18 @@ const BUDGET = {
   commInstall: 288000,   // Commercial Replacement
   commService: 279000,   // Commercial Service + Maintenance combined
   apartments:  125000,   // Apartments
+};
+
+// Lead goals — pulled directly from the budget file each month
+const LEAD_GOALS = {
+  installTotal:    84,       // # of leads required to meet install goal
+  installPerDay:   3.82,     // leads per day needed
+  installCloses:   52,       // estimated closes (84 × ~62% close rate)
+  serviceTotal:    614,      // # of leads required to meet service goal
+  servicePerDay:   29.25,    // leads per day needed
+  ptuLeads:        25,       // PTU leads expected
+  avgTicket:       13000,    // avg install ticket target
+  closeRatePct:    62,       // target close rate %
 };
 BUDGET.residential = BUDGET.resInstall + BUDGET.resService;
 BUDGET.commercial  = BUDGET.commInstall + BUDGET.commService;
@@ -742,12 +758,12 @@ function render() {
       <div class="lead-cell">
         <div class="lead-label">Total leads (MTD)</div>
         <div class="lead-value">${leadsData ? leadsData.curMonth.leads : '—'}</div>
-        <div class="lead-note">${MONTH_LABEL} goal: 93 leads</div>
+        <div class="lead-note">${MONTH_LABEL} goal: ${LEAD_GOALS.installTotal} leads</div>
       </div>
       <div class="lead-cell">
         <div class="lead-label">MTD close rate</div>
         <div class="lead-value">${leadsData && leadsData.curMonth.leads > 0 ? Math.round(leadsData.curMonth.sold / leadsData.curMonth.leads * 100) + '%' : '—'}</div>
-        <div class="lead-note">Target: 65%</div>
+        <div class="lead-note">Target: ${LEAD_GOALS.closeRatePct}%</div>
       </div>
       <div class="lead-cell">
         <div class="lead-label">Open pipeline</div>
@@ -757,17 +773,17 @@ function render() {
       <div class="lead-cell">
         <div class="lead-label">Avg ticket</div>
         <div class="lead-value">${leadsData ? fmt(leadsData.avgTicket) : '—'}</div>
-        <div class="lead-note">Target $13,000</div>
+        <div class="lead-note">Target ${fmt(LEAD_GOALS.avgTicket)}</div>
       </div>
       <div class="lead-cell">
         <div class="lead-label">MTD sold</div>
         <div class="lead-value">${leadsData ? leadsData.curMonth.sold : '—'}</div>
-        <div class="lead-note">${MONTH_LABEL} goal: 61 closes</div>
+        <div class="lead-note">${MONTH_LABEL} goal: ${LEAD_GOALS.installCloses} closes</div>
       </div>
       <div class="lead-cell">
-        <div class="lead-label">MTD revenue</div>
-        <div class="lead-value">${leadsData ? '$' + Math.round(leadsData.curMonth.rev / 1000) + 'K' : '—'}</div>
-        <div class="lead-note">From lead sheet</div>
+        <div class="lead-label">Leads / day needed</div>
+        <div class="lead-value">${LEAD_GOALS.installPerDay}</div>
+        <div class="lead-note">PTU expected: ${LEAD_GOALS.ptuLeads}/mo</div>
       </div>
     </div>
 
