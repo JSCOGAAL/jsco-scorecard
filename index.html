@@ -165,9 +165,9 @@
   .card-pace-badge.warn { background: rgba(251,191,36,.22); color: #FDE68A; }
   .card-pace-badge.bad  { background: rgba(248,113,113,.22); color: #FCA5A5; }
 
-  /* Progress bar sits right under header */
-  .prog-wrap { height: 5px; background: rgba(0,0,0,.2); }
-  .prog-bar { height: 100%; transition: width .6s ease; }
+  /* Progress bar — sits between header and win zone, white track so fill is always visible */
+  .prog-wrap { height: 8px; background: #D1D5DB; border-top: 1px solid rgba(0,0,0,.08); }
+  .prog-bar { height: 100%; transition: width .8s ease; opacity: .85; }
 
   /* WIN zone — the hero number */
   .win-zone {
@@ -349,12 +349,12 @@ const PROXIES = [
 // ─── MAY 2026 BUDGET ─────────────────────────────────────────────────────────
 // To update monthly: change these numbers when you upload the next budget sheet
 const BUDGET = {
-  resInstall:  750000,   // Residential Replacement
-  resService:  365000,   // Residential Service (demand + agreements combined)
-  plumbing:    270000,   // Plumbing
-  commInstall: 576000,   // Commercial Replacement
-  commService: 407000,   // Commercial Service + Maintenance combined
-  apartments:  325000,   // Apartments
+  resInstall:      750000,   // Residential Replacement
+  resService:      365000,   // Residential Service + Maintenance combined
+  plumbing:        270000,   // Plumbing
+  commInstall:     576000,   // Commercial Replacement
+  commService:     407000,   // Commercial Service + Maintenance combined
+  apartments:      325000,   // Apartments
 };
 BUDGET.residential = BUDGET.resInstall + BUDGET.resService;
 BUDGET.commercial  = BUDGET.commInstall + BUDGET.commService;
@@ -455,7 +455,7 @@ function getDepts() {
     },
     {
       name: 'Residential Service',
-      label: 'Demand + Maintenance Agreements',
+      label: 'Demand Service + Maintenance Agreements',
       icon: '🔨',
       color: '#0369A1',
       budget: BUDGET.resService,
