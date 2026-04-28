@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jackson Services — Daily Win Scorecard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #E05C1A;
+    --orange-light: #FFF0E8;
+    --navy: #1A2540;
+    --charcoal: #2C2C2C;
+    --green: #16A34A;
+    --green-light: #DCFCE7;
+    --amber: #D97706;
+    --amber-light: #FEF3C7;
+    --red: #DC2626;
+    --red-light: #FEE2E2;
+    --border: #E5E7EB;
+    --border-dark: #D1D5DB;
+    --bg: #F7F6F3;
+    --surface: #FFFFFF;
+    --text: #111827;
+    --text-2: #4B5563;
+    --text-3: #9CA3AF;
+    --res: #E05C1A;
+    --plumb: #2563EB;
+    --comm: #6D28D9;
+    --apt: #0891B2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--navy);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-logo {
+    width: 32px;
+    height: 32px;
+    background: var(--orange);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .header-logo svg { width: 18px; height: 18px; fill: white; }
+  .header-title { font-size: 15px; font-weight: 600; color: white; letter-spacing: -0.01em; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header-date { font-size: 12px; color: rgba(255,255,255,0.55); font-family: 'DM Mono', monospace; }
+  .refresh-btn {
+    font-size: 12px; font-family: 'DM Sans', sans-serif;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.8); border-radius: 6px;
+    padding: 5px 12px; cursor: pointer; transition: background .15s;
+  }
+  .refresh-btn:hover { background: rgba(255,255,255,0.18); }
+
+  /* SETTINGS BAR */
+  .settings-bar {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .setting-group { display: flex; align-items: center; gap: 8px; }
+  .setting-label { font-size: 12px; color: var(--text-2); white-space: nowrap; }
+  .setting-input {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    width: 52px;
+    padding: 4px 8px;
+    border: 1px solid var(--border-dark);
+    border-radius: 6px;
+    color: var(--text);
+    text-align: center;
+    background: var(--bg);
+  }
+  .setting-input:focus { outline: 2px solid var(--orange); outline-offset: -1px; border-color: transparent; }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green); display: inline-block;
+    animation: pulse 2s infinite;
+  }
+  .status-dot.error { background: var(--red); animation: none; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+  .status-text { font-size: 12px; color: var(--text-3); }
+  .settings-bar .spacer { flex: 1; }
+  .last-updated { font-size: 11px; color: var(--text-3); font-family: 'DM Mono', monospace; }
+
+  /* MAIN */
+  .main { padding: 20px 24px 40px; max-width: 1200px; margin: 0 auto; }
+
+  /* COMPANY STRIP */
+  .company-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .cs-cell { background: var(--surface); padding: 14px 18px; }
+  .cs-cell.highlight { background: var(--orange-light); }
+  .cs-label { font-size: 11px; color: var(--text-3); font-weight: 500; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  .cs-value { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; }
+  .cs-value.orange { color: var(--orange); }
+  .cs-note { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--text-3);
+    margin-bottom: 12px; margin-top: 4px;
+  }
+
+  /* DEPT GRID */
+  .dept-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  /* DEPT CARD */
+  .dept-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-top {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .card-accent { width: 4px; border-radius: 2px; align-self: stretch; min-height: 20px; flex-shrink: 0; margin-top: 2px; }
+  .card-top-main { flex: 1; min-width: 0; }
+  .card-name { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+  .card-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .card-mtd { font-size: 13px; font-weight: 500; color: var(--text-2); white-space: nowrap; }
+
+  /* WIN TARGET — hero */
+  .win-target {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .win-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+  .win-main {}
+  .win-eyebrow { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-bottom: 4px; }
+  .win-amount { font-size: 32px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
+  .win-sub { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+  .win-base { text-align: right; flex-shrink: 0; }
+  .win-base-label { font-size: 10px; color: var(--text-3); margin-bottom: 3px; }
+  .win-base-amount { font-size: 17px; font-weight: 500; color: var(--text-2); letter-spacing: -0.02em; }
+  .win-base-note { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+
+  /* Progress bar */
+  .prog-wrap { height: 3px; background: var(--border); margin: 0; overflow: hidden; }
+  .prog-bar { height: 100%; transition: width .6s ease; }
+
+  /* Pace badge */
+  .pace-badge {
+    display: inline-block; font-size: 11px; font-weight: 500;
+    padding: 2px 8px; border-radius: 20px; margin-top: 8px;
+  }
+  .pace-badge.good { background: var(--green-light); color: var(--green); }
+  .pace-badge.warn { background: var(--amber-light); color: var(--amber); }
+  .pace-badge.bad  { background: var(--red-light); color: var(--red); }
+
+  /* Sub-lines */
+  .sub-lines { padding: 10px 16px 12px; display: flex; flex-direction: column; gap: 7px; }
+  .sub-line {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .sub-left {}
+  .sub-name { font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; }
+  .sub-detail { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .sub-right { text-align: right; flex-shrink: 0; }
+  .sub-catchup { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+  .sub-base { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+  }
+  .stat { background: var(--surface); padding: 9px 12px; }
+  .stat-label { font-size: 10px; color: var(--text-3); margin-bottom: 2px; text-transform: uppercase; letter-spacing: .04em; }
+  .stat-value { font-size: 13px; font-weight: 500; color: var(--text); }
+
+  /* LEAD SECTION */
+  .lead-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .lead-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .lead-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); margin-bottom: 5px; }
+  .lead-value { font-size: 20px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; }
+  .lead-note { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  /* REP TABLE */
+  .rep-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .rep-card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); }
+  table.rep { width: 100%; border-collapse: collapse; }
+  table.rep th {
+    text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--text-3);
+    padding: 9px 16px; border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  table.rep th:not(:first-child) { text-align: right; }
+  table.rep td { padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text); }
+  table.rep td:not(:first-child) { text-align: right; font-family: 'DM Mono', monospace; font-size: 12px; }
+  table.rep tr:last-child td { border-bottom: none; }
+  table.rep tr:hover td { background: var(--bg); }
+  .rep-pill { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 20px; font-family: 'DM Sans', sans-serif; }
+  .rep-pill.g { background: var(--green-light); color: var(--green); }
+  .rep-pill.y { background: var(--amber-light); color: var(--amber); }
+  .rep-pill.r { background: var(--red-light); color: var(--red); }
+
+  /* LOADING / ERROR */
+  .loading-state {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 300px; flex-direction: column; gap: 12px;
+  }
+  .spinner {
+    width: 28px; height: 28px; border: 2px solid var(--border);
+    border-top-color: var(--orange); border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 13px; color: var(--text-3); }
+  .error-state { background: var(--red-light); border: 1px solid #FECACA; border-radius: 10px; padding: 16px 20px; color: var(--red); font-size: 13px; margin-bottom: 16px; }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* FOOTER */
+  .footer { font-size: 11px; color: var(--text-3); text-align: center; padding-top: 8px; line-height: 1.6; }
+
+  /* MOBILE */
+  @media (max-width: 600px) {
+    .main { padding: 14px 14px 32px; }
+    .header { padding: 0 14px; }
+    .settings-bar { padding: 10px 14px; gap: 14px; }
+    .win-amount { font-size: 26px; }
+    .header-date { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="header-logo">
+      <svg viewBox="0 0 20 20"><path d="M10 2L3 7v11h5v-5h4v5h5V7L10 2z"/></svg>
+    </div>
+    <div class="header-title">Jackson Services — Daily Win Scorecard</div>
+  </div>
+  <div class="header-right">
+    <span class="header-date" id="hdr-date">—</span>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</div>
+
+<div class="settings-bar">
+  <div class="setting-group">
+    <span class="setting-label">Work days in month</span>
+    <input class="setting-input" type="number" id="total-days" value="21" min="1" max="23" onchange="render()">
+  </div>
+  <div class="setting-group">
+    <span class="setting-label">Days worked so far</span>
+    <input class="setting-input" type="number" id="days-worked" value="20" min="0" max="23" onchange="render()">
+  </div>
+  <div class="setting-group">
+    <span class="setting-label">Days left (incl. today)</span>
+    <input class="setting-input" type="number" id="days-left" value="1" min="1" max="23" readonly style="background:#f0f0ee;color:#9CA3AF;">
+  </div>
+  <div class="spacer"></div>
+  <span class="status-dot" id="status-dot"></span>
+  <span class="status-text" id="status-text">Loading...</span>
+  <span class="last-updated" id="last-updated"></span>
+</div>
+
+<div class="main">
+  <div id="content">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <div class="loading-text">Pulling live data from ServiceTitan...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ─────────────────────────────────────────────────────────────────
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRu3_K61QZOfpy1mV8iReqJxMBGG1s-3EgEjqHpCt-FNBBknZC1u5PJcZ428knPq-D3DUNGY8QP2GZU/pub?output=csv';
+const PROXY    = 'https://api.allorigins.win/raw?url=';
+
+// ─── MAY 2026 BUDGET ─────────────────────────────────────────────────────────
+// To update monthly: change these numbers when you upload the next budget sheet
+const BUDGET = {
+  resInstall:  750000,   // Residential Replacement
+  resService:  365000,   // Residential Service (demand + agreements combined)
+  plumbing:    270000,   // Plumbing
+  commInstall: 576000,   // Commercial Replacement
+  commService: 407000,   // Commercial Service + Maintenance combined
+  apartments:  325000,   // Apartments
+};
+BUDGET.residential = BUDGET.resInstall + BUDGET.resService;
+BUDGET.commercial  = BUDGET.commInstall + BUDGET.commService;
+BUDGET.total       = BUDGET.residential + BUDGET.plumbing + BUDGET.commercial + BUDGET.apartments;
+
+// ─── DEPT COLORS ─────────────────────────────────────────────────────────────
+const COLORS = {
+  residential: '#E05C1A',
+  plumbing:    '#2563EB',
+  commercial:  '#6D28D9',
+  apartments:  '#0891B2',
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let liveData = null;
+
+// ─── FETCH ───────────────────────────────────────────────────────────────────
+async function loadData() {
+  setStatus('loading');
+  try {
+    const res = await fetch(PROXY + encodeURIComponent(SHEET_URL));
+    if (!res.ok) throw new Error('Network error');
+    const text = await res.text();
+    liveData = parseCSV(text);
+    setStatus('ok');
+    document.getElementById('last-updated').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
+    render();
+  } catch(e) {
+    setStatus('error', e.message);
+  }
+}
+
+function setStatus(state, msg) {
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  if (state === 'ok')      { dot.className='status-dot'; text.textContent='Live'; }
+  else if (state === 'error') { dot.className='status-dot error'; text.textContent='Error — check sheet'; }
+  else                     { dot.className='status-dot'; text.textContent='Loading...'; }
+}
+
+// ─── PARSE CSV ───────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim());
+  const rows = {};
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    const name = cols[0].trim();
+    if (!name || /^\d+$/.test(name)) continue; // skip totals row
+    const obj = {};
+    headers.forEach((h, idx) => {
+      let val = (cols[idx] || '').trim().replace(/[$,%]/g, '');
+      obj[h] = isNaN(val) || val === '' ? val : parseFloat(val);
+    });
+    rows[name] = obj;
+  }
+  return rows;
+}
+
+// ─── MERGE ROWS ───────────────────────────────────────────────────────────────
+function sum(keys, field) {
+  return keys.reduce((acc, k) => {
+    const row = liveData[k];
+    if (!row) return acc;
+    const v = row[field];
+    return acc + (typeof v === 'number' ? v : 0);
+  }, 0);
+}
+
+function getDepts() {
+  const d = liveData;
+  const resInstallKeys = ['HVAC Residential:AL Install','HVAC Residential:GA Install'];
+  const resServiceKeys = ['HVAC Residential:AL Service','HVAC Residential:GA Service',
+                          'Residential: AL Service Agreements','Residential: GA Service Agreements'];
+  const plumbKeys      = ['05_Plumbing:Service'];
+  const commInstallKeys= ['HVAC Mechanical:AL Install','HVAC Mechanical:GA Install'];
+  const commServiceKeys= ['HVAC Mechanical:AL Service','HVAC Mechanical:GA Service',
+                          'Mechanical AL Service Agreements','Mechanical GA Service Agreements'];
+  const aptKeys        = ['HVAC AL Apartments','HVAC GA Apartments'];
+
+  function merge(keys) {
+    return {
+      revenue:  sum(keys, 'Completed Revenue'),
+      opps:     sum(keys, 'Opportunity'),
+      conv:     sum(keys, 'Converted Jobs'),
+      completed:sum(keys, 'Completed Jobs'),
+      canceled: sum(keys, 'Canceled Jobs'),
+      recalls:  sum(keys, 'Recall Jobs'),
+    };
+  }
+
+  const resInstall  = merge(resInstallKeys);
+  const resService  = merge(resServiceKeys);
+  const commInstall = merge(commInstallKeys);
+  const commService = merge(commServiceKeys);
+
+  resInstall.budget  = BUDGET.resInstall;
+  resService.budget  = BUDGET.resService;
+  commInstall.budget = BUDGET.commInstall;
+  commService.budget = BUDGET.commService;
+
+  return {
+    residential: {
+      name: 'Residential',
+      color: COLORS.residential,
+      budget: BUDGET.residential,
+      revenue: resInstall.revenue + resService.revenue,
+      opps: resInstall.opps + resService.opps,
+      conv: resInstall.conv + resService.conv,
+      completed: resInstall.completed + resService.completed,
+      canceled: resInstall.canceled + resService.canceled,
+      subs: [
+        { name: 'Install · Replacement', ...resInstall },
+        { name: 'Service · Demand + Agreements', ...resService },
+      ]
+    },
+    plumbing: {
+      name: 'Plumbing',
+      color: COLORS.plumbing,
+      budget: BUDGET.plumbing,
+      ...merge(plumbKeys),
+      subs: null,
+    },
+    commercial: {
+      name: 'Commercial',
+      color: COLORS.commercial,
+      budget: BUDGET.commercial,
+      revenue: commInstall.revenue + commService.revenue,
+      opps: commInstall.opps + commService.opps,
+      conv: commInstall.conv + commService.conv,
+      completed: commInstall.completed + commService.completed,
+      canceled: commInstall.canceled + commService.canceled,
+      subs: [
+        { name: 'Install · Replacement', ...commInstall },
+        { name: 'Service + Maintenance', ...commService },
+      ]
+    },
+    apartments: {
+      name: 'Apartments',
+      color: COLORS.apartments,
+      budget: BUDGET.apartments,
+      ...merge(aptKeys),
+      subs: null,
+    },
+  };
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  if (!liveData) return;
+
+  const totalDays  = parseInt(document.getElementById('total-days').value) || 21;
+  const daysWorked = parseInt(document.getElementById('days-worked').value) || 20;
+  const daysLeft   = Math.max(1, totalDays - daysWorked);
+  document.getElementById('days-left').value = daysLeft;
+
+  const depts = getDepts();
+  const totalRev = Object.values(depts).reduce((a,d) => a + d.revenue, 0);
+  const totalOpps = Object.values(depts).reduce((a,d) => a + d.opps, 0);
+  const totalConv = Object.values(depts).reduce((a,d) => a + d.conv, 0);
+  const totalCanceled = Object.values(depts).reduce((a,d) => a + d.canceled, 0);
+
+  const totalCatchup = Math.max(0, BUDGET.total - totalRev) / daysLeft;
+  const totalBase    = BUDGET.total / totalDays;
+
+  const fmt  = n => '$' + Math.round(n).toLocaleString('en-US');
+  const fpct = n => Math.round(n) + '%';
+
+  function paceClass(actual, budget) {
+    const pct = actual / budget * 100;
+    if (pct >= 90) return 'good';
+    if (pct >= 70) return 'warn';
+    return 'bad';
+  }
+  function paceBadgeText(actual, budget) {
+    const p = actual / budget * 100;
+    const diff = Math.round(p - 100);
+    return (diff >= 0 ? '+' : '') + diff + '% to goal';
+  }
+
+  function buildCard(dept) {
+    const baseDaily = dept.budget / totalDays;
+    const remaining = Math.max(0, dept.budget - dept.revenue);
+    const catchup   = remaining / daysLeft;
+    const barW      = Math.min(100, Math.round(dept.revenue / dept.budget * 100));
+    const pc        = paceClass(dept.revenue, dept.budget);
+    const convPct   = dept.opps > 0 ? Math.round(dept.conv / dept.opps * 100) : 0;
+
+    let subsHtml = '';
+    if (dept.subs) {
+      subsHtml = '<div class="sub-lines">';
+      dept.subs.forEach(s => {
+        const sBase    = s.budget / totalDays;
+        const sRemain  = Math.max(0, s.budget - s.revenue);
+        const sCatchup = sRemain / daysLeft;
+        const sConvPct = s.opps > 0 ? Math.round(s.conv / s.opps * 100) : 0;
+        subsHtml += `
+          <div class="sub-line">
+            <div class="sub-left">
+              <div class="sub-name">${s.name}</div>
+              <div class="sub-detail">MTD ${fmt(s.revenue)} &nbsp;·&nbsp; ${s.opps} opps &nbsp;·&nbsp; ${sConvPct}% conv &nbsp;·&nbsp; ${s.completed} jobs</div>
+            </div>
+            <div class="sub-right">
+              <div class="sub-catchup">${fmt(sCatchup)}</div>
+              <div class="sub-base">base ${fmt(sBase)}/day</div>
+            </div>
+          </div>`;
+      });
+      subsHtml += '</div>';
+    }
+
+    return `
+      <div class="dept-card">
+        <div class="card-top">
+          <div class="card-accent" style="background:${dept.color};"></div>
+          <div class="card-top-main">
+            <div class="card-name">${dept.name}</div>
+            <div class="card-meta">MTD ${fmt(dept.revenue)} &nbsp;·&nbsp; goal ${fmt(dept.budget)}</div>
+          </div>
+          <div class="card-mtd">
+            <span class="pace-badge ${pc}">${paceBadgeText(dept.revenue, dept.budget)}</span>
+          </div>
+        </div>
+        <div class="win-target">
+          <div class="win-row">
+            <div class="win-main">
+              <div class="win-eyebrow">Need today to win</div>
+              <div class="win-amount" style="color:${dept.color};">${fmt(catchup)}</div>
+              <div class="win-sub">${fmt(remaining)} remaining &nbsp;÷&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left</div>
+            </div>
+            <div class="win-base">
+              <div class="win-base-label">Base daily goal</div>
+              <div class="win-base-amount">${fmt(baseDaily)}</div>
+              <div class="win-base-note">budget ÷ ${totalDays} days</div>
+            </div>
+          </div>
+        </div>
+        <div class="prog-wrap"><div class="prog-bar" style="width:${barW}%;background:${dept.color};"></div></div>
+        ${dept.subs ? subsHtml : ''}
+        <div class="stats-row">
+          <div class="stat"><div class="stat-label">Opps</div><div class="stat-value">${dept.opps.toLocaleString()}</div></div>
+          <div class="stat"><div class="stat-label">Conv %</div><div class="stat-value">${convPct}%</div></div>
+          <div class="stat"><div class="stat-label">Canceled</div><div class="stat-value">${dept.canceled}</div></div>
+        </div>
+      </div>`;
+  }
+
+  const html = `
+    ${totalRev < BUDGET.total * 0.5 && daysWorked > 5 ? '<div class="error-state">⚠️ Revenue looks low vs days worked — verify the sheet is showing the correct month.</div>' : ''}
+
+    <div class="section-label">Company total</div>
+    <div class="company-strip">
+      <div class="cs-cell highlight">
+        <div class="cs-label">Need today (catch-up)</div>
+        <div class="cs-value orange">${fmt(totalCatchup)}</div>
+        <div class="cs-note">${fmt(Math.max(0, BUDGET.total - totalRev))} remaining ÷ ${daysLeft} day${daysLeft !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-label">Base daily goal</div>
+        <div class="cs-value">${fmt(totalBase)}</div>
+        <div class="cs-note">$${(BUDGET.total/1000).toFixed(0)}K ÷ ${totalDays} days</div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-label">MTD revenue</div>
+        <div class="cs-value">${fmt(totalRev)}</div>
+        <div class="cs-note">${daysWorked} days worked</div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-label">Monthly goal</div>
+        <div class="cs-value">${fmt(BUDGET.total)}</div>
+        <div class="cs-note">May 2026 budget</div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-label">Total opps</div>
+        <div class="cs-value">${totalOpps.toLocaleString()}</div>
+        <div class="cs-note">${Math.round(totalConv/totalOpps*100)}% conversion rate</div>
+      </div>
+    </div>
+
+    <div class="section-label">What each department needs today</div>
+    <div class="dept-grid">
+      ${Object.values(depts).map(buildCard).join('')}
+    </div>
+
+    <hr>
+
+    <div class="section-label">Residential install — replacement lead targets</div>
+    <div class="lead-grid">
+      <div class="lead-cell">
+        <div class="lead-label">Leads needed / day</div>
+        <div class="lead-value">4.5</div>
+        <div class="lead-note">May budget target</div>
+      </div>
+      <div class="lead-cell">
+        <div class="lead-label">April close rate</div>
+        <div class="lead-value">74%</div>
+        <div class="lead-note">Target: 65% ✓</div>
+      </div>
+      <div class="lead-cell">
+        <div class="lead-label">Open pipeline</div>
+        <div class="lead-value">49</div>
+        <div class="lead-note">Active pending leads</div>
+      </div>
+      <div class="lead-cell">
+        <div class="lead-label">Avg ticket</div>
+        <div class="lead-value">$13,045</div>
+        <div class="lead-note">Target $13,000 ✓</div>
+      </div>
+      <div class="lead-cell">
+        <div class="lead-label">Sales / day (May)</div>
+        <div class="lead-value">2.9</div>
+        <div class="lead-note">61 closes ÷ 21 days</div>
+      </div>
+      <div class="lead-cell">
+        <div class="lead-label">PTU leads exp.</div>
+        <div class="lead-value">25</div>
+        <div class="lead-note">Per month</div>
+      </div>
+    </div>
+
+    <div class="section-label">Sales rep performance — residential install</div>
+    <div class="rep-card">
+      <table class="rep">
+        <thead>
+          <tr>
+            <th>Rep</th>
+            <th>Leads</th>
+            <th>Sold</th>
+            <th>Open</th>
+            <th>Close %</th>
+            <th>Revenue</th>
+            <th>Avg ticket</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Glen Strickland</td><td>48</td><td>26</td><td>22</td><td><span class="rep-pill y">54%</span></td><td>$384,142</td><td>$14,775</td></tr>
+          <tr><td>Taylor Mock</td><td>38</td><td>28</td><td>10</td><td><span class="rep-pill g">74%</span></td><td>$347,967</td><td>$12,427</td></tr>
+          <tr><td>Luke Thompson</td><td>32</td><td>20</td><td>12</td><td><span class="rep-pill y">62%</span></td><td>$252,736</td><td>$12,637</td></tr>
+          <tr><td>David Wade</td><td>9</td><td>5</td><td>4</td><td><span class="rep-pill y">56%</span></td><td>$53,216</td><td>$10,643</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      Jackson Services · May 2026 · GA + AL combined · Residential Service = Demand + Agreements · 
+      Data auto-refreshes from ServiceTitan via Google Sheets · Last pull: <span id="footer-time"></span>
+    </div>`;
+
+  document.getElementById('content').innerHTML = html;
+  document.getElementById('footer-time').textContent =
+    new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+
+// ─── DAYS-LEFT AUTO CALC ─────────────────────────────────────────────────────
+document.getElementById('total-days').addEventListener('input', () => {
+  const t = parseInt(document.getElementById('total-days').value) || 21;
+  const w = parseInt(document.getElementById('days-worked').value) || 0;
+  document.getElementById('days-left').value = Math.max(1, t - w);
+  render();
+});
+document.getElementById('days-worked').addEventListener('input', () => {
+  const t = parseInt(document.getElementById('total-days').value) || 21;
+  const w = parseInt(document.getElementById('days-worked').value) || 0;
+  document.getElementById('days-left').value = Math.max(1, t - w);
+  render();
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('hdr-date').textContent =
+  new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+loadData();
+// Auto-refresh every 5 minutes
+setInterval(loadData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
