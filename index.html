@@ -380,6 +380,7 @@ function parseLeads(text) {
   };
 
   const leads = [], reps = {}, months = {};
+  let noLeadsThisMonth = 0;
 
   // Lock to the budget month from MONTH_LABEL (e.g. "April 2026" → "2026-04")
   const monthMap = {january:'01',february:'02',march:'03',april:'04',may:'05',june:'06',
@@ -406,7 +407,15 @@ function parseLeads(text) {
     const custName   = (row['Customer Name'] || '').trim();
 
     // Only process confirmed YES leads
-    if (actualLead !== 'YES' || !custName) continue;
+    if (actualLead !== 'YES' || !custName) {
+      // Count explicit NO leads for the budget month
+      if (actualLead === 'NO' && custName) {
+        const d = parseDate(row['Date'] || '');
+        const mKey = d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : 'unknown';
+        if (mKey === thisMonth) noLeadsThisMonth++;
+      }
+      continue;
+    }
 
     leads.push(row);
 
@@ -453,6 +462,7 @@ function parseLeads(text) {
     totalRev,
     avgTicket: totalSold > 0 ? Math.round(totalRev / totalSold) : 0,
     curMonth,
+    noLeadsThisMonth,
     allMonths,
     reps,
   };
@@ -799,6 +809,11 @@ function render() {
         <div class="lead-label">Leads / day needed</div>
         <div class="lead-value">${LEAD_GOALS.installPerDay}</div>
         <div class="lead-note">PTU expected: ${LEAD_GOALS.ptuLeads}/mo</div>
+      </div>
+      <div class="lead-cell" style="border-left: 3px solid #EF4444;">
+        <div class="lead-label">Not a lead (MTD)</div>
+        <div class="lead-value" style="color:#DC2626;">${leadsData ? leadsData.noLeadsThisMonth : '—'}</div>
+        <div class="lead-note">Marked NO this month</div>
       </div>
     </div>
 
