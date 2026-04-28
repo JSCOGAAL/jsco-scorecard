@@ -460,7 +460,9 @@ async function loadData() {
 }
 
 // ─── APRIL 2026 BUDGET ───────────────────────────────────────────────────────
-// To update monthly: swap these 7 numbers and the default work days in the inputs below
+// To update monthly: swap these 7 numbers, the work days input below, and MONTH_LABEL
+const MONTH_LABEL = 'April 2026'; // ← change this each month
+
 const BUDGET = {
   resInstall:  675000,   // Residential Replacement
   resService:  315000,   // Residential Service + Maintenance combined
@@ -713,7 +715,7 @@ function render() {
       <div class="cs-cell">
         <div class="cs-label">Monthly goal</div>
         <div class="cs-value">${fmt(BUDGET.total)}</div>
-        <div class="cs-note">April 2026 budget</div>
+        <div class="cs-note">${MONTH_LABEL} budget</div>
       </div>
       <div class="cs-cell">
         <div class="cs-label">Total opps</div>
@@ -740,7 +742,7 @@ function render() {
       <div class="lead-cell">
         <div class="lead-label">Total leads (MTD)</div>
         <div class="lead-value">${leadsData ? leadsData.curMonth.leads : '—'}</div>
-        <div class="lead-note">May goal: 93 leads</div>
+        <div class="lead-note">${MONTH_LABEL} goal: 93 leads</div>
       </div>
       <div class="lead-cell">
         <div class="lead-label">MTD close rate</div>
@@ -760,7 +762,7 @@ function render() {
       <div class="lead-cell">
         <div class="lead-label">MTD sold</div>
         <div class="lead-value">${leadsData ? leadsData.curMonth.sold : '—'}</div>
-        <div class="lead-note">May goal: 61 closes</div>
+        <div class="lead-note">${MONTH_LABEL} goal: 61 closes</div>
       </div>
       <div class="lead-cell">
         <div class="lead-label">MTD revenue</div>
@@ -774,7 +776,7 @@ function render() {
       <div class="section-heading-line"></div>
     </div>
     <div class="rep-card">
-      <div class="rep-card-hdr">Sales Rep Leaderboard — Residential Install · All Time</div>
+      <div class="rep-card-hdr">Sales Rep Leaderboard — Residential Install · ${MONTH_LABEL}</div>
       <table class="rep">
         <thead>
           <tr>
@@ -806,7 +808,7 @@ function render() {
     </div>
 
     <div class="footer">
-      Jackson Services · April 2026 · GA + AL combined · Data refreshes every 5 min · Last pull: <span id="footer-time"></span>
+      Jackson Services · ${MONTH_LABEL} · GA + AL combined · Data refreshes every 5 min · Last pull: <span id="footer-time"></span>
     </div>`;
 
   document.getElementById('content').innerHTML = html;
