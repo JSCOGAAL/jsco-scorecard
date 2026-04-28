@@ -132,31 +132,33 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(275px, 1fr));
     gap: 14px; margin-bottom: 24px;
+    align-items: start;
   }
 
-  /* ── DEPT CARD ──────────────────────────────────────────── */
+  /* ── DEPT CARD — rigid zone layout ─────────────────────── */
   .dept-card {
     border-radius: 12px; overflow: hidden;
-    display: flex; flex-direction: column;
+    display: grid;
+    grid-template-rows: auto 8px auto auto auto; /* header | bar | win | metrics | stats */
     box-shadow: 0 2px 6px rgba(0,0,0,.09);
     border: 1.5px solid var(--border);
   }
 
-  /* Card header — dark colored band */
+  /* Card header — fixed height */
   .card-hdr {
-    padding: 13px 16px 12px;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 8px;
+    height: 72px;
+    padding: 0 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
   }
-  .card-hdr-left { display: flex; align-items: center; gap: 10px; }
+  .card-hdr-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .card-icon {
-    width: 32px; height: 32px; border-radius: 7px;
+    width: 34px; height: 34px; border-radius: 7px;
     background: rgba(255,255,255,.18);
     display: flex; align-items: center; justify-content: center;
-    font-size: 15px; flex-shrink: 0;
+    font-size: 16px; flex-shrink: 0;
   }
-  .card-name { font-size: 15px; font-weight: 700; color: white; letter-spacing: -.01em; }
-  .card-sublabel { font-size: 11px; color: rgba(255,255,255,.65); margin-top: 2px; }
+  .card-name { font-size: 15px; font-weight: 700; color: white; letter-spacing: -.01em; white-space: nowrap; }
+  .card-sublabel { font-size: 11px; color: rgba(255,255,255,.65); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
   .card-pace-badge {
     font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
     white-space: nowrap; flex-shrink: 0;
@@ -165,54 +167,57 @@
   .card-pace-badge.warn { background: rgba(251,191,36,.22); color: #FDE68A; }
   .card-pace-badge.bad  { background: rgba(248,113,113,.22); color: #FCA5A5; }
 
-  /* Progress bar — sits between header and win zone, white track so fill is always visible */
-  .prog-wrap { height: 8px; background: #D1D5DB; border-top: 1px solid rgba(0,0,0,.08); }
-  .prog-bar { height: 100%; transition: width .8s ease; opacity: .85; }
+  /* Progress bar */
+  .prog-wrap { height: 8px; background: #D1D5DB; }
+  .prog-bar { height: 100%; transition: width .8s ease; opacity: .9; }
 
-  /* WIN zone — the hero number */
+  /* WIN zone — fixed height */
   .win-zone {
+    height: 100px;
     background: var(--surface);
-    padding: 14px 16px 12px;
+    padding: 0 16px;
     border-bottom: 2px dashed var(--border);
-    display: flex; align-items: flex-end; justify-content: space-between; gap: 8px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
   }
   .win-main {}
   .win-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); margin-bottom: 4px; }
-  .win-amount { font-size: 34px; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
-  .win-sub { font-size: 11px; color: var(--text-3); margin-top: 5px; }
+  .win-amount { font-size: 32px; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
+  .win-sub { font-size: 11px; color: var(--text-3); margin-top: 4px; }
   .win-base-box { text-align: right; flex-shrink: 0; }
   .win-base-label { font-size: 10px; color: var(--text-3); margin-bottom: 3px; }
-  .win-base-amt { font-size: 18px; font-weight: 600; color: var(--text-2); letter-spacing: -.02em; }
+  .win-base-amt { font-size: 17px; font-weight: 600; color: var(--text-2); letter-spacing: -.02em; }
   .win-base-note { font-size: 10px; color: var(--text-3); margin-top: 2px; }
 
-  /* Card metrics — MTD / goal / avg ticket row */
+  /* Metrics row — fixed height, 3 equal columns */
   .card-metrics {
     display: grid; grid-template-columns: 1fr 1fr 1fr;
+    height: 64px;
     border-bottom: 2px solid var(--border);
     background: #F0F2F5;
   }
   .metric {
-    padding: 10px 14px;
+    padding: 0 14px;
     border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; justify-content: center;
   }
   .metric:last-child { border-right: none; }
   .metric-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); margin-bottom: 3px; }
-  .metric-value { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+  .metric-value { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
 
-  /* Card stats — ops row at bottom */
+  /* Stats row — fixed height, 4 equal columns */
   .card-stats {
     display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+    height: 60px;
     background: var(--surface);
   }
   .cstat {
-    padding: 10px 10px;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
     border-top: 2px solid var(--border);
     border-right: 1px solid var(--border-light);
-    text-align: center;
   }
   .cstat:last-child { border-right: none; }
-  .cstat-val { font-size: 16px; font-weight: 700; color: var(--text); }
-  .cstat-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); margin-top: 2px; }
+  .cstat-val { font-size: 15px; font-weight: 700; color: var(--text); }
+  .cstat-lbl { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); margin-top: 2px; }
 
   /* ── LEAD GRID ──────────────────────────────────────────── */
   .lead-grid {
