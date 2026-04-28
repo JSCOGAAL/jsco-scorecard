@@ -345,28 +345,29 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzV0rhC4zsDtBCl
 // ─── FETCH ───────────────────────────────────────────────────────────────────
 async function loadData() {
   setStatus('loading');
-
-  if (APPS_SCRIPT_URL === 'PASTE_YOUR_APPS_SCRIPT_URL_HERE') {
-    setStatus('error', 'Add your Apps Script URL — see setup instructions');
-    return;
-  }
-
   try {
-    const res = await fetch(APPS_SCRIPT_URL);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'GET',
+      mode: 'cors',
+      redirect: 'follow',
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
-
     if (!text.includes('Plumbing') && !text.includes('Name,')) {
-      throw new Error('Unexpected data — check Apps Script is deployed');
+      throw new Error('Bad data: ' + text.substring(0, 80));
     }
-
     liveData = parseCSV(text);
     setStatus('ok');
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
     render();
   } catch(e) {
-    setStatus('error', e.message);
+    const msg = e.name === 'AbortError' ? 'Timed out after 12s' : (e.message || 'Unknown fetch error');
+    setStatus('error', msg);
   }
 }
 
@@ -392,9 +393,9 @@ let liveData = null;
 function setStatus(state, msg) {
   const dot  = document.getElementById('status-dot');
   const text = document.getElementById('status-text');
-  if (state === 'ok')      { dot.className='status-dot'; text.textContent='Live'; }
-  else if (state === 'error') { dot.className='status-dot error'; text.textContent='Error — check sheet'; }
-  else                     { dot.className='status-dot'; text.textContent='Loading...'; }
+  if (state === 'ok')         { dot.className='status-dot'; text.textContent='Live'; }
+  else if (state === 'error') { dot.className='status-dot error'; text.textContent='Error: ' + (msg || 'unknown'); }
+  else                        { dot.className='status-dot'; text.textContent='Loading...'; }
 }
 
 // ─── PARSE CSV ───────────────────────────────────────────────────────────────
