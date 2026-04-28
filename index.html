@@ -401,7 +401,22 @@ function parseLeads(text) {
     const row = {};
     headers.forEach((h, idx) => row[h] = cols[idx] || '');
 
-    if (row['Actual Lead']?.trim().toUpperCase() !== 'YES') continue;
+    const actualLead = row['Actual Lead']?.trim().toUpperCase();
+    const soldBy     = (row['Sold By'] || '').trim();
+    const custName   = (row['Customer Name'] || '').trim();
+
+    // Skip explicit NO leads and rows with no customer name
+    if (actualLead === 'NO' || !custName) continue;
+
+    // Awaiting assignment: blank Actual Lead with no rep assigned
+    if (actualLead !== 'YES') {
+      if (!reps['Unassigned']) reps['Unassigned'] = { leads:0, sold:0, open:0, rev:0, pending:[] };
+      reps['Unassigned'].leads++;
+      reps['Unassigned'].open++;
+      reps['Unassigned'].pending.push({ name: custName, date: row['Date'] });
+      continue;
+    }
+
     leads.push(row);
 
     const d = parseDate(row['Date'] || '');
@@ -410,7 +425,7 @@ function parseLeads(text) {
     months[mKey].leads++;
 
     const rep = (row['Sold By'] || '').trim() || 'Unassigned';
-    if (!reps[rep]) reps[rep] = { leads:0, sold:0, open:0, rev:0 };
+    if (!reps[rep]) reps[rep] = { leads:0, sold:0, open:0, rev:0, pending:[] };
     reps[rep].leads++;
 
     const amt = parseAmt(row['Sold?'] || '');
@@ -815,8 +830,11 @@ function render() {
               const avg = v.sold > 0 ? Math.round(v.rev / v.sold) : 0;
               const pillCls = cr >= 70 ? 'g' : cr >= 55 ? 'y' : 'r';
               const isUnassigned = rep === 'Unassigned';
+              const pendingNames = isUnassigned && v.pending?.length
+                ? `<div style="font-size:10px;color:#92400E;margin-top:2px;">${v.pending.map(p => p.name).join(' · ')}</div>`
+                : '';
               return `<tr${isUnassigned ? ' style="background:#FEF9C3;"' : ''}>
-                <td>${isUnassigned ? '⚠️ Awaiting Assignment' : rep}</td>
+                <td>${isUnassigned ? `⚠️ Awaiting Assignment${pendingNames}` : rep}</td>
                 <td>${v.leads}</td>
                 <td>${v.sold}</td>
                 <td>${v.open}</td>
