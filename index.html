@@ -346,8 +346,9 @@
 <script>
 // ─── CONFIG ─────────────────────────────────────────────────────────────────
 // ─── DATA SOURCES ────────────────────────────────────────────────────────────
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRu3_K61QZOfpy1mV8iReqJxMBGG1s-3EgEjqHpCt-FNBBknZC1u5PJcZ428knPq-D3DUNGY8QP2GZU/pub?output=csv';
-const LEADS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqnTF057TtgSPFKD2PJXyUNj2ruTSrjWsTDO56XGQU0hE269K7ZIxIXFItI7iPmZBHtbSAoKqEdbR5/pub?gid=628204934&single=true&output=csv';
+const SHEET_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRu3_K61QZOfpy1mV8iReqJxMBGG1s-3EgEjqHpCt-FNBBknZC1u5PJcZ428knPq-D3DUNGY8QP2GZU/pub?output=csv';
+const LEADS_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqnTF057TtgSPFKD2PJXyUNj2ruTSrjWsTDO56XGQU0hE269K7ZIxIXFItI7iPmZBHtbSAoKqEdbR5/pub?gid=628204934&single=true&output=csv';
+const REPS_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTsaOlInjMiZmbjZe5yIUNdspXhrF-D9m-m_01uxHagKMqqyztC9tc6gCkJpOlisjDuqdGP8NB7QwVI/pub?gid=260700718&single=true&output=csv';
 
 // ─── FETCH ───────────────────────────────────────────────────────────────────
 async function getCSV(url) {
@@ -468,17 +469,60 @@ function parseLeads(text) {
   };
 }
 
+// ─── PARSE REPS PERFORMANCE CSV ──────────────────────────────────────────────
+function parseReps(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim());
+
+  const cleanNum = v => parseFloat((v || '').replace(/[$,%]/g, '')) || 0;
+
+  const reps = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = [];
+    let cur = '', inQ = false;
+    for (const c of lines[i]) {
+      if (c === '"') { inQ = !inQ; continue; }
+      if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
+      cur += c;
+    }
+    cols.push(cur.trim());
+
+    const row = {};
+    headers.forEach((h, idx) => row[h] = cols[idx] || '');
+
+    const name = row['Name']?.trim();
+    // Skip blank rows and totals row (totals row has a number as name)
+    if (!name || /^\d+$/.test(name)) continue;
+
+    reps.push({
+      name,
+      totalSales:  cleanNum(row['Total Sales']),
+      opps:        cleanNum(row['Sales Opportunity']),
+      closed:      cleanNum(row['Closed Opportunities']),
+      closeRate:   cleanNum(row['Close Rate']),
+      avgSale:     cleanNum(row['Closed Average Sale']),
+      wip:         cleanNum(row['WIP Jobs']),
+    });
+  }
+
+  // Sort by total sales descending
+  return reps.sort((a, b) => b.totalSales - a.totalSales);
+}
+
 async function loadData() {
   setStatus('loading');
   try {
-    // Fetch both sheets in parallel
-    const [huddle, leadsText] = await Promise.all([
+    // Fetch all three sheets in parallel
+    const [huddle, leadsText, repsText] = await Promise.all([
       getCSV(SHEET_URL),
       getCSV(LEADS_URL),
+      getCSV(REPS_URL),
     ]);
     if (!huddle || !huddle.includes('Plumbing')) throw new Error('Bad huddle data');
     liveData  = parseCSV(huddle);
     leadsData = parseLeads(leadsText);
+    repsData  = parseReps(repsText);
     setStatus('ok');
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
@@ -520,6 +564,7 @@ BUDGET.total       = BUDGET.residential + BUDGET.plumbing + BUDGET.commercial + 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let liveData  = null;
 let leadsData = null;
+let repsData  = null;
 
 
 function setStatus(state, msg) {
@@ -826,38 +871,23 @@ function render() {
       <table class="rep">
         <thead>
           <tr>
-            <th>Rep</th><th>Leads</th><th>Sold</th><th>Open</th>
-            <th>Close %</th><th>Revenue</th><th>Avg Ticket</th>
+            <th>Rep</th><th>Opportunities</th><th>Closed</th><th>WIP</th>
+            <th>Close %</th><th>Total Sales</th><th>Avg Sale</th>
           </tr>
         </thead>
         <tbody>
-          ${leadsData ? Object.entries(leadsData.reps)
-            .filter(([rep]) => rep !== 'Ben Mc')
-            .sort(([a],[b]) => {
-              // Unassigned always goes to bottom
-              if (a === 'Unassigned') return 1;
-              if (b === 'Unassigned') return -1;
-              return leadsData.reps[b].leads - leadsData.reps[a].leads;
-            })
-            .map(([rep, v]) => {
-              const total = v.sold + v.open;
-              const cr = total > 0 ? Math.round(v.sold / total * 100) : 0;
-              const avg = v.sold > 0 ? Math.round(v.rev / v.sold) : 0;
-              const pillCls = cr >= 70 ? 'g' : cr >= 55 ? 'y' : 'r';
-              const isUnassigned = rep === 'Unassigned';
-              const pendingNames = isUnassigned && v.pending?.length
-                ? `<div style="font-size:10px;color:#92400E;margin-top:2px;">${v.pending.map(p => p.name).join(' · ')}</div>`
-                : '';
-              return `<tr${isUnassigned ? ' style="background:#FEF9C3;"' : ''}>
-                <td>${isUnassigned ? `⚠️ Awaiting Assignment${pendingNames}` : rep}</td>
-                <td>${v.leads}</td>
-                <td>${v.sold}</td>
-                <td>${v.open}</td>
-                <td>${isUnassigned ? '<span style="color:#92400E;font-size:11px;">—</span>' : `<span class="rep-pill ${pillCls}">${cr}%</span>`}</td>
-                <td>${fmt(v.rev)}</td>
-                <td>${v.sold > 0 ? fmt(avg) : '—'}</td>
-              </tr>`;
-            }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--text-3);">Loading lead data...</td></tr>'}
+          ${repsData && repsData.length ? repsData.map(r => {
+            const pillCls = r.closeRate >= 70 ? 'g' : r.closeRate >= 55 ? 'y' : 'r';
+            return `<tr>
+              <td>${r.name}</td>
+              <td>${r.opps}</td>
+              <td>${r.closed}</td>
+              <td>${r.wip}</td>
+              <td><span class="rep-pill ${pillCls}">${r.closeRate.toFixed(1)}%</span></td>
+              <td>${fmt(r.totalSales)}</td>
+              <td>${r.avgSale > 0 ? fmt(r.avgSale) : '—'}</td>
+            </tr>`;
+          }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--text-3);">Loading rep data...</td></tr>'}
         </tbody>
       </table>
     </div>
