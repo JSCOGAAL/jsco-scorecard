@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Fetch Test</title>
+<style>
+  body { font-family: monospace; padding: 20px; background: #111; color: #eee; }
+  .ok { color: #4ade80; }
+  .err { color: #f87171; }
+  .info { color: #94a3b8; }
+  pre { background: #1e293b; padding: 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0; font-size: 12px; white-space: pre-wrap; }
+  button { background: #E05C1A; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; margin: 4px; }
+</style>
+</head>
+<body>
+<h2>Jackson Services — Fetch Diagnostic</h2>
+<p class="info">This page tests each fetch method and shows exactly what the browser receives.</p>
+<br>
+<button onclick="testDirect()">Test 1: Direct Sheet URL</button>
+<button onclick="testAppsScript()">Test 2: Apps Script URL</button>
+<button onclick="testProxy()">Test 3: corsproxy.io fallback</button>
+<div id="log"></div>
+
+<script>
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRu3_K61QZOfpy1mV8iReqJxMBGG1s-3EgEjqHpCt-FNBBknZC1u5PJcZ428knPq-D3DUNGY8QP2GZU/pub?output=csv';
+const APPS_URL  = 'https://script.google.com/macros/s/AKfycbzV0rhC4zsDtBCls4eJurdIdRxyDLF0SK1u9hL0mY8z_YgDU7u-bq8lp48yjc_Vso-4AA/exec';
+
+function log(msg, cls='info') {
+  const div = document.createElement('div');
+  div.className = cls;
+  div.textContent = msg;
+  document.getElementById('log').appendChild(div);
+}
+function logPre(txt) {
+  const pre = document.createElement('pre');
+  pre.textContent = txt;
+  document.getElementById('log').appendChild(pre);
+}
+function clear() { document.getElementById('log').innerHTML = ''; }
+
+async function testDirect() {
+  clear();
+  log('── Test 1: Direct published sheet URL ──');
+  log('URL: ' + SHEET_URL);
+  try {
+    const r = await fetch(SHEET_URL);
+    log('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'ok' : 'err');
+    log('Final URL: ' + r.url);
+    const text = await r.text();
+    log('First 200 chars of response:');
+    logPre(text.substring(0, 200));
+    log(text.startsWith('<') ? '❌ Got HTML not CSV' : '✅ Got CSV data', text.startsWith('<') ? 'err' : 'ok');
+  } catch(e) {
+    log('❌ FAILED: ' + e.message, 'err');
+    log('Error name: ' + e.name, 'err');
+  }
+}
+
+async function testAppsScript() {
+  clear();
+  log('── Test 2: Apps Script URL ──');
+  log('URL: ' + APPS_URL);
+  try {
+    const r = await fetch(APPS_URL);
+    log('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'ok' : 'err');
+    log('Final URL: ' + r.url);
+    const text = await r.text();
+    log('First 200 chars of response:');
+    logPre(text.substring(0, 200));
+    log(text.startsWith('<') ? '❌ Got HTML not CSV' : '✅ Got CSV data', text.startsWith('<') ? 'err' : 'ok');
+  } catch(e) {
+    log('❌ FAILED: ' + e.message, 'err');
+    log('Error name: ' + e.name, 'err');
+  }
+}
+
+async function testProxy() {
+  clear();
+  log('── Test 3: corsproxy.io ──');
+  const url = 'https://corsproxy.io/?' + encodeURIComponent(SHEET_URL);
+  log('URL: ' + url);
+  try {
+    const r = await fetch(url);
+    log('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'ok' : 'err');
+    const text = await r.text();
+    log('First 200 chars of response:');
+    logPre(text.substring(0, 200));
+    log(text.startsWith('<') ? '❌ Got HTML not CSV' : '✅ Got CSV data', text.startsWith('<') ? 'err' : 'ok');
+  } catch(e) {
+    log('❌ FAILED: ' + e.message, 'err');
+    log('Error name: ' + e.name, 'err');
+  }
+}
+</script>
+</body>
+</html>
