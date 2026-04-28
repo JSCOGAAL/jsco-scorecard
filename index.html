@@ -345,13 +345,12 @@
 
 <script>
 // ─── CONFIG ─────────────────────────────────────────────────────────────────
-// ─── DATA SOURCE ─────────────────────────────────────────────────────────────
-// Direct published Google Sheet URL — same approach as the working service dashboard
+// ─── DATA SOURCES ────────────────────────────────────────────────────────────
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRu3_K61QZOfpy1mV8iReqJxMBGG1s-3EgEjqHpCt-FNBBknZC1u5PJcZ428knPq-D3DUNGY8QP2GZU/pub?output=csv';
+const LEADS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqnTF057TtgSPFKD2PJXyUNj2ruTSrjWsTDO56XGQU0hE269K7ZIxIXFItI7iPmZBHtbSAoKqEdbR5/pub?gid=628204934&single=true&output=csv';
 
 // ─── FETCH ───────────────────────────────────────────────────────────────────
 async function getCSV(url) {
-  // Plain fetch — Google published sheets have CORS open on their redirect destination
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
@@ -362,17 +361,95 @@ async function getCSV(url) {
       if (!t.trim().startsWith('<')) return t;
     }
   } catch(e) {}
-  // Fallback proxy
   const r2 = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
   return r2.text();
+}
+
+// ─── PARSE LEADS CSV ─────────────────────────────────────────────────────────
+function parseLeads(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return {};
+  const headers = lines[0].split(',').map(h => h.trim());
+
+  const parseAmt = v => { try { return parseFloat(v.replace(/[$,]/g,'')) || 0; } catch(e) { return 0; } };
+  const parseDate = v => {
+    const m = v.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (!m) return null;
+    const y = m[3].length === 2 ? 2000 + parseInt(m[3]) : parseInt(m[3]);
+    return new Date(y, parseInt(m[1])-1, parseInt(m[2]));
+  };
+
+  const leads = [], reps = {}, months = {};
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  for (let i = 1; i < lines.length; i++) {
+    // Handle quoted CSV fields
+    const cols = [];
+    let cur = '', inQ = false;
+    for (const c of lines[i]) {
+      if (c === '"') { inQ = !inQ; continue; }
+      if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
+      cur += c;
+    }
+    cols.push(cur.trim());
+
+    const row = {};
+    headers.forEach((h, idx) => row[h] = cols[idx] || '');
+
+    if (row['Actual Lead']?.trim().toUpperCase() !== 'YES') continue;
+    leads.push(row);
+
+    const d = parseDate(row['Date'] || '');
+    const mKey = d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : 'unknown';
+    if (!months[mKey]) months[mKey] = { leads:0, sold:0, rev:0 };
+    months[mKey].leads++;
+
+    const rep = (row['Sold By'] || '').trim() || 'Unassigned';
+    if (!reps[rep]) reps[rep] = { leads:0, sold:0, open:0, rev:0 };
+    reps[rep].leads++;
+
+    const amt = parseAmt(row['Sold?'] || '');
+    if (amt > 0) {
+      months[mKey].sold++;
+      months[mKey].rev += amt;
+      reps[rep].sold++;
+      reps[rep].rev += amt;
+    } else {
+      reps[rep].open++;
+    }
+  }
+
+  const totalSold = leads.filter(r => parseAmt(r['Sold?']) > 0).length;
+  const totalRev  = leads.reduce((s,r) => s + parseAmt(r['Sold?']), 0);
+  const curMonth  = months[thisMonth] || { leads:0, sold:0, rev:0 };
+  const allMonths = Object.entries(months)
+    .filter(([k]) => k !== 'unknown')
+    .sort(([a],[b]) => a.localeCompare(b));
+
+  return {
+    totalLeads: leads.length,
+    totalSold,
+    totalOpen: leads.length - totalSold,
+    totalRev,
+    avgTicket: totalSold > 0 ? Math.round(totalRev / totalSold) : 0,
+    curMonth,
+    allMonths,
+    reps,
+  };
 }
 
 async function loadData() {
   setStatus('loading');
   try {
-    const text = await getCSV(SHEET_URL);
-    if (!text || !text.includes('Plumbing')) throw new Error('Bad data received');
-    liveData = parseCSV(text);
+    // Fetch both sheets in parallel
+    const [huddle, leadsText] = await Promise.all([
+      getCSV(SHEET_URL),
+      getCSV(LEADS_URL),
+    ]);
+    if (!huddle || !huddle.includes('Plumbing')) throw new Error('Bad huddle data');
+    liveData  = parseCSV(huddle);
+    leadsData = parseLeads(leadsText);
     setStatus('ok');
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
@@ -398,7 +475,8 @@ BUDGET.total       = BUDGET.residential + BUDGET.plumbing + BUDGET.commercial + 
 
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
-let liveData = null;
+let liveData  = null;
+let leadsData = null;
 
 
 function setStatus(state, msg) {
@@ -655,48 +733,48 @@ function render() {
     <hr>
 
     <div class="section-heading">
-      <span class="section-heading-text">Residential install — replacement lead targets</span>
+      <span class="section-heading-text">Residential install — replacement lead tracking (live)</span>
       <div class="section-heading-line"></div>
     </div>
     <div class="lead-grid">
       <div class="lead-cell">
-        <div class="lead-label">Leads needed / day</div>
-        <div class="lead-value">4.5</div>
-        <div class="lead-note">May budget target</div>
+        <div class="lead-label">Total leads (MTD)</div>
+        <div class="lead-value">${leadsData ? leadsData.curMonth.leads : '—'}</div>
+        <div class="lead-note">May goal: 93 leads</div>
       </div>
       <div class="lead-cell">
-        <div class="lead-label">April close rate</div>
-        <div class="lead-value">74%</div>
-        <div class="lead-note">Target: 65% ✓</div>
+        <div class="lead-label">MTD close rate</div>
+        <div class="lead-value">${leadsData && leadsData.curMonth.leads > 0 ? Math.round(leadsData.curMonth.sold / leadsData.curMonth.leads * 100) + '%' : '—'}</div>
+        <div class="lead-note">Target: 65%</div>
       </div>
       <div class="lead-cell">
         <div class="lead-label">Open pipeline</div>
-        <div class="lead-value">49</div>
+        <div class="lead-value">${leadsData ? leadsData.totalOpen : '—'}</div>
         <div class="lead-note">Active pending leads</div>
       </div>
       <div class="lead-cell">
         <div class="lead-label">Avg ticket</div>
-        <div class="lead-value">$13,045</div>
-        <div class="lead-note">Target $13,000 ✓</div>
+        <div class="lead-value">${leadsData ? fmt(leadsData.avgTicket) : '—'}</div>
+        <div class="lead-note">Target $13,000</div>
       </div>
       <div class="lead-cell">
-        <div class="lead-label">Sales / day (May)</div>
-        <div class="lead-value">2.9</div>
-        <div class="lead-note">61 closes ÷ 21 days</div>
+        <div class="lead-label">MTD sold</div>
+        <div class="lead-value">${leadsData ? leadsData.curMonth.sold : '—'}</div>
+        <div class="lead-note">May goal: 61 closes</div>
       </div>
       <div class="lead-cell">
-        <div class="lead-label">PTU leads exp.</div>
-        <div class="lead-value">25</div>
-        <div class="lead-note">Per month</div>
+        <div class="lead-label">MTD revenue</div>
+        <div class="lead-value">${leadsData ? '$' + Math.round(leadsData.curMonth.rev / 1000) + 'K' : '—'}</div>
+        <div class="lead-note">From lead sheet</div>
       </div>
     </div>
 
     <div class="section-heading">
-      <span class="section-heading-text">Sales rep performance — residential install</span>
+      <span class="section-heading-text">Sales rep performance — residential install (live)</span>
       <div class="section-heading-line"></div>
     </div>
     <div class="rep-card">
-      <div class="rep-card-hdr">Sales Rep Leaderboard — Residential Install</div>
+      <div class="rep-card-hdr">Sales Rep Leaderboard — Residential Install · All Time</div>
       <table class="rep">
         <thead>
           <tr>
@@ -705,16 +783,30 @@ function render() {
           </tr>
         </thead>
         <tbody>
-          <tr><td>Glen Strickland</td><td>48</td><td>26</td><td>22</td><td><span class="rep-pill y">54%</span></td><td>$384,142</td><td>$14,775</td></tr>
-          <tr><td>Taylor Mock</td><td>38</td><td>28</td><td>10</td><td><span class="rep-pill g">74%</span></td><td>$347,967</td><td>$12,427</td></tr>
-          <tr><td>Luke Thompson</td><td>32</td><td>20</td><td>12</td><td><span class="rep-pill y">62%</span></td><td>$252,736</td><td>$12,637</td></tr>
-          <tr><td>David Wade</td><td>9</td><td>5</td><td>4</td><td><span class="rep-pill y">56%</span></td><td>$53,216</td><td>$10,643</td></tr>
+          ${leadsData ? Object.entries(leadsData.reps)
+            .filter(([rep]) => rep !== 'Unassigned' && rep !== 'Ben Mc')
+            .sort(([,a],[,b]) => b.leads - a.leads)
+            .map(([rep, v]) => {
+              const total = v.sold + v.open;
+              const cr = total > 0 ? Math.round(v.sold / total * 100) : 0;
+              const avg = v.sold > 0 ? Math.round(v.rev / v.sold) : 0;
+              const pillCls = cr >= 70 ? 'g' : cr >= 55 ? 'y' : 'r';
+              return `<tr>
+                <td>${rep}</td>
+                <td>${v.leads}</td>
+                <td>${v.sold}</td>
+                <td>${v.open}</td>
+                <td><span class="rep-pill ${pillCls}">${cr}%</span></td>
+                <td>${fmt(v.rev)}</td>
+                <td>${fmt(avg)}</td>
+              </tr>`;
+            }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--text-3);">Loading lead data...</td></tr>'}
         </tbody>
       </table>
     </div>
 
     <div class="footer">
-      Jackson Services · May 2026 · GA + AL combined · Data refreshes every 5 min from ServiceTitan via Google Sheets · Last pull: <span id="footer-time"></span>
+      Jackson Services · May 2026 · GA + AL combined · Data refreshes every 5 min · Last pull: <span id="footer-time"></span>
     </div>`;
 
   document.getElementById('content').innerHTML = html;
