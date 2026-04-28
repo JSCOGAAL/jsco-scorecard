@@ -316,7 +316,7 @@
 <div class="settings-bar">
   <div class="setting-group">
     <span class="setting-label">Work days in month</span>
-    <input class="setting-input" type="number" id="total-days" value="21" min="1" max="23" onchange="render()">
+    <input class="setting-input" type="number" id="total-days" value="22" min="1" max="23" onchange="render()">
   </div>
   <div class="setting-group">
     <span class="setting-label">Days worked so far</span>
@@ -459,15 +459,15 @@ async function loadData() {
   }
 }
 
-// ─── MAY 2026 BUDGET ─────────────────────────────────────────────────────────
-// To update monthly: swap these numbers when you upload the next budget sheet
+// ─── APRIL 2026 BUDGET ───────────────────────────────────────────────────────
+// To update monthly: swap these 7 numbers and the default work days in the inputs below
 const BUDGET = {
-  resInstall:      750000,   // Residential Replacement
-  resService:      365000,   // Residential Service + Maintenance combined
-  plumbing:        270000,   // Plumbing
-  commInstall:     576000,   // Commercial Replacement
-  commService:     407000,   // Commercial Service + Maintenance combined
-  apartments:      325000,   // Apartments
+  resInstall:  675000,   // Residential Replacement
+  resService:  315000,   // Residential Service + Maintenance combined
+  plumbing:    210000,   // Plumbing
+  commInstall: 288000,   // Commercial Replacement
+  commService: 279000,   // Commercial Service + Maintenance combined
+  apartments:  125000,   // Apartments
 };
 BUDGET.residential = BUDGET.resInstall + BUDGET.resService;
 BUDGET.commercial  = BUDGET.commInstall + BUDGET.commService;
@@ -713,7 +713,7 @@ function render() {
       <div class="cs-cell">
         <div class="cs-label">Monthly goal</div>
         <div class="cs-value">${fmt(BUDGET.total)}</div>
-        <div class="cs-note">May 2026 budget</div>
+        <div class="cs-note">April 2026 budget</div>
       </div>
       <div class="cs-cell">
         <div class="cs-label">Total opps</div>
@@ -806,7 +806,7 @@ function render() {
     </div>
 
     <div class="footer">
-      Jackson Services · May 2026 · GA + AL combined · Data refreshes every 5 min · Last pull: <span id="footer-time"></span>
+      Jackson Services · April 2026 · GA + AL combined · Data refreshes every 5 min · Last pull: <span id="footer-time"></span>
     </div>`;
 
   document.getElementById('content').innerHTML = html;
