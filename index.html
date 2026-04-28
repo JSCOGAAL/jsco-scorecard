@@ -337,31 +337,27 @@
 
 <script>
 // ─── CONFIG ─────────────────────────────────────────────────────────────────
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRu3_K61QZOfpy1mV8iReqJxMBGG1s-3EgEjqHpCt-FNBBknZC1u5PJcZ428knPq-D3DUNGY8QP2GZU/pub?output=csv';
+// ─── PROXY URL ───────────────────────────────────────────────────────────────
+// Replace this with your Google Apps Script web app URL after deploying it
+// See setup instructions below
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzV0rhC4zsDtBCls4eJurdIdRxyDLF0SK1u9hL0mY8z_YgDU7u-bq8lp48yjc_Vso-4AA/exec';
 
 // ─── FETCH ───────────────────────────────────────────────────────────────────
 async function loadData() {
   setStatus('loading');
-  try {
-    // allorigins /get returns JSON — contents field is base64-encoded when binary/csv
-    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(SHEET_URL);
-    const res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const json = await res.json();
 
-    let text = '';
-    if (json.contents && json.contents.startsWith('data:')) {
-      // base64-encoded — decode it
-      const b64 = json.contents.split(',')[1];
-      text = atob(b64);
-    } else if (json.contents) {
-      text = json.contents;
-    } else {
-      throw new Error('Empty response from proxy');
-    }
+  if (APPS_SCRIPT_URL === 'PASTE_YOUR_APPS_SCRIPT_URL_HERE') {
+    setStatus('error', 'Add your Apps Script URL — see setup instructions');
+    return;
+  }
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
 
     if (!text.includes('Plumbing') && !text.includes('Name,')) {
-      throw new Error('Unexpected data format — check sheet is published');
+      throw new Error('Unexpected data — check Apps Script is deployed');
     }
 
     liveData = parseCSV(text);
