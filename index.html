@@ -343,22 +343,30 @@
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzV0rhC4zsDtBCls4eJurdIdRxyDLF0SK1u9hL0mY8z_YgDU7u-bq8lp48yjc_Vso-4AA/exec';
 
 // ─── FETCH ───────────────────────────────────────────────────────────────────
+async function getCSV(url) {
+  // Try direct fetch first (works for Apps Script which has CORS open)
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const r = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (r.ok) {
+      const t = await r.text();
+      if (!t.trim().startsWith('<')) return t;
+    }
+  } catch(e) {}
+  // Fallback proxy
+  const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+  const r2 = await fetch(proxy);
+  return r2.text();
+}
+
 async function loadData() {
   setStatus('loading');
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'GET',
-      mode: 'cors',
-      redirect: 'follow',
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-    if (!text.includes('Plumbing') && !text.includes('Name,')) {
-      throw new Error('Bad data: ' + text.substring(0, 80));
+    const text = await getCSV(APPS_SCRIPT_URL);
+    if (!text || !text.includes('Plumbing')) {
+      throw new Error('Bad data received');
     }
     liveData = parseCSV(text);
     setStatus('ok');
@@ -366,8 +374,7 @@ async function loadData() {
       'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
     render();
   } catch(e) {
-    const msg = e.name === 'AbortError' ? 'Timed out after 12s' : (e.message || 'Unknown fetch error');
-    setStatus('error', msg);
+    setStatus('error', e.message || 'Unknown error');
   }
 }
 
