@@ -337,14 +337,13 @@
 
 <script>
 // ─── CONFIG ─────────────────────────────────────────────────────────────────
-// ─── PROXY URL ───────────────────────────────────────────────────────────────
-// Replace this with your Google Apps Script web app URL after deploying it
-// See setup instructions below
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzV0rhC4zsDtBCls4eJurdIdRxyDLF0SK1u9hL0mY8z_YgDU7u-bq8lp48yjc_Vso-4AA/exec';
+// ─── DATA SOURCE ─────────────────────────────────────────────────────────────
+// Direct published Google Sheet URL — same approach as the working service dashboard
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRu3_K61QZOfpy1mV8iReqJxMBGG1s-3EgEjqHpCt-FNBBknZC1u5PJcZ428knPq-D3DUNGY8QP2GZU/pub?output=csv';
 
 // ─── FETCH ───────────────────────────────────────────────────────────────────
 async function getCSV(url) {
-  // Try direct fetch first (works for Apps Script which has CORS open)
+  // Plain fetch — Google published sheets have CORS open on their redirect destination
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
@@ -356,18 +355,15 @@ async function getCSV(url) {
     }
   } catch(e) {}
   // Fallback proxy
-  const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
-  const r2 = await fetch(proxy);
+  const r2 = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
   return r2.text();
 }
 
 async function loadData() {
   setStatus('loading');
   try {
-    const text = await getCSV(APPS_SCRIPT_URL);
-    if (!text || !text.includes('Plumbing')) {
-      throw new Error('Bad data received');
-    }
+    const text = await getCSV(SHEET_URL);
+    if (!text || !text.includes('Plumbing')) throw new Error('Bad data received');
     liveData = parseCSV(text);
     setStatus('ok');
     document.getElementById('last-updated').textContent =
