@@ -344,6 +344,69 @@
     font-size: 12px; color: #F87171;
     margin-top: 10px; min-height: 18px;
   }
+
+  /* ── SNAPSHOT BUTTON ────────────────────────────────────── */
+  .snapshot-btn {
+    font-size: 12px; font-family: 'DM Sans', sans-serif;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+    color: rgba(255,255,255,.85); border-radius: 6px;
+    padding: 5px 14px; cursor: pointer; transition: background .15s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .snapshot-btn:hover { background: rgba(255,255,255,.22); }
+
+  /* ── END OF MONTH BANNER ────────────────────────────────── */
+  .eom-banner {
+    background: #FEF3C7; border-bottom: 2px solid #F59E0B;
+    padding: 10px 24px; display: flex; align-items: center;
+    justify-content: space-between; gap: 12px;
+  }
+  .eom-banner.hidden { display: none; }
+  .eom-text { font-size: 13px; font-weight: 600; color: #92400E; }
+  .eom-sub  { font-size: 11px; color: #B45309; margin-top: 1px; }
+  .eom-dismiss {
+    font-size: 12px; font-family: 'DM Sans', sans-serif;
+    background: #F59E0B; border: none; color: white;
+    border-radius: 6px; padding: 5px 14px; cursor: pointer;
+    white-space: nowrap; flex-shrink: 0; font-weight: 600;
+  }
+
+  /* ── CALENDAR MODAL ─────────────────────────────────────── */
+  #cal-modal {
+    position: fixed; inset: 0; z-index: 9998;
+    background: rgba(0,0,0,.6);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #cal-modal.hidden { display: none; }
+  .cal-box {
+    background: white; border-radius: 16px;
+    padding: 28px 32px; width: 420px; max-width: 95vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  }
+  .cal-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .cal-sub { font-size: 12px; color: var(--text-3); margin-bottom: 20px; line-height: 1.5; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 16px; }
+  .cal-dow { text-align: center; font-size: 10px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; padding-bottom: 4px; }
+  .cal-day { aspect-ratio: 1; border-radius: 8px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text); transition: all .12s; user-select: none; }
+  .cal-day:hover:not(.cal-empty):not(.cal-weekend) { border-color: var(--orange); }
+  .cal-day.cal-selected { background: var(--orange); border-color: var(--orange); color: white; }
+  .cal-day.cal-weekend { background: #F8F9FB; color: var(--text-3); cursor: default; border-color: var(--border-light); }
+  .cal-day.cal-empty { border: none; cursor: default; }
+  .cal-day.cal-today:not(.cal-selected) { border-color: var(--orange); color: var(--orange); font-weight: 700; }
+  .cal-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .cal-count { font-size: 12px; color: var(--text-3); }
+  .cal-count strong { color: var(--orange); font-weight: 700; }
+  .cal-confirm { background: var(--orange); border: none; color: white; font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif; padding: 9px 22px; border-radius: 8px; cursor: pointer; }
+  .cal-confirm:hover { opacity: .88; }
+
+  /* ── PRINT STYLES ───────────────────────────────────────── */
+  @media print {
+    #pw-gate, #cal-modal, .eom-banner, .settings-bar,
+    .refresh-btn, .snapshot-btn, .cal-open-btn { display: none !important; }
+    .header { position: static !important; }
+    body { background: white !important; }
+    .dept-card, .rep-card, .lead-cell, .cs-cell { break-inside: avoid; }
+  }
 </style>
 </head>
 <body>
@@ -363,6 +426,28 @@
   </div>
 </div>
 
+<!-- CALENDAR MODAL -->
+<div id="cal-modal" class="hidden">
+  <div class="cal-box">
+    <div class="cal-title" id="cal-title">Set Work Days</div>
+    <div class="cal-sub">Click each day your team works this month. Weekends are excluded automatically. Deselect any holidays or closure days.</div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-footer">
+      <div class="cal-count"><strong id="cal-count">0</strong> work days selected</div>
+      <button class="cal-confirm" onclick="confirmCalendar()">Confirm &amp; Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- END OF MONTH BANNER -->
+<div class="eom-banner hidden" id="eom-banner">
+  <div>
+    <div class="eom-text">📸 Last workday of the month — save your snapshot before data resets!</div>
+    <div class="eom-sub">Click "Save Snapshot" in the top right to print or save a PDF of today's scorecard.</div>
+  </div>
+  <button class="eom-dismiss" onclick="document.getElementById('eom-banner').classList.add('hidden')">Got it</button>
+</div>
+
 <div class="header">
   <div class="header-brand">
     <div class="header-logo">
@@ -372,6 +457,7 @@
   </div>
   <div class="header-right">
     <span class="header-date" id="hdr-date">—</span>
+    <button class="snapshot-btn" onclick="window.print()">📸 Save Snapshot</button>
     <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
   </div>
 </div>
@@ -379,16 +465,17 @@
 <div class="settings-bar">
   <div class="setting-group">
     <span class="setting-label">Work days in month</span>
-    <input class="setting-input" type="number" id="total-days" value="22" min="1" max="23" onchange="render()">
+    <input class="setting-input" type="number" id="total-days" value="22" min="1" max="23" readonly style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);">
   </div>
   <div class="setting-group">
     <span class="setting-label">Days worked so far</span>
-    <input class="setting-input" type="number" id="days-worked" value="20" min="0" max="23" onchange="render()">
+    <input class="setting-input" type="number" id="days-worked" value="0" min="0" max="23" readonly style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);">
   </div>
   <div class="setting-group">
     <span class="setting-label">Days left (incl. today)</span>
-    <input class="setting-input" type="number" id="days-left" value="1" min="1" max="23" readonly style="background:#f0f0ee;color:#9CA3AF;">
+    <input class="setting-input" type="number" id="days-left" value="22" min="1" max="23" readonly style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);">
   </div>
+  <button class="refresh-btn cal-open-btn" onclick="openCalendar()" style="border-color:rgba(232,96,26,.6);color:#F97316;">📅 Set Work Days</button>
   <div class="spacer"></div>
   <div class="status-group">
     <span class="status-dot" id="status-dot"></span>
@@ -966,19 +1053,130 @@ function render() {
     new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 }
 
-// ─── DAYS-LEFT AUTO CALC ─────────────────────────────────────────────────────
-document.getElementById('total-days').addEventListener('input', () => {
-  const t = parseInt(document.getElementById('total-days').value) || 21;
-  const w = parseInt(document.getElementById('days-worked').value) || 0;
-  document.getElementById('days-left').value = Math.max(1, t - w);
+// ─── CALENDAR SYSTEM ─────────────────────────────────────────────────────────
+// Storage key includes the budget month so it resets automatically each month
+const CAL_KEY = 'jsco_workdays_' + MONTH_LABEL.replace(' ', '_');
+
+function getStoredDays() {
+  try { return JSON.parse(localStorage.getItem(CAL_KEY)) || null; }
+  catch(e) { return null; }
+}
+function storeDays(days) {
+  try { localStorage.setItem(CAL_KEY, JSON.stringify(days)); } catch(e) {}
+}
+
+function buildCalendar() {
+  const monthMap = {january:0,february:1,march:2,april:3,may:4,june:5,
+                    july:6,august:7,september:8,october:9,november:10,december:11};
+  const parts = MONTH_LABEL.toLowerCase().split(' ');
+  const month = monthMap[parts[0]];
+  const year  = parseInt(parts[1]);
+
+  const today     = new Date();
+  const firstDay  = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMo  = new Date(year, month + 1, 0).getDate();
+  const stored    = getStoredDays();
+
+  document.getElementById('cal-title').textContent = `Set Work Days — ${MONTH_LABEL}`;
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  // Day of week headers
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+    const h = document.createElement('div');
+    h.className = 'cal-dow'; h.textContent = d;
+    grid.appendChild(h);
+  });
+
+  // Empty cells before first day
+  for (let i = 0; i < firstDay; i++) {
+    const e = document.createElement('div');
+    e.className = 'cal-day cal-empty';
+    grid.appendChild(e);
+  }
+
+  // Day cells
+  for (let d = 1; d <= daysInMo; d++) {
+    const dow  = new Date(year, month, d).getDay();
+    const isWk = dow === 0 || dow === 6;
+    const isTd = today.getFullYear()===year && today.getMonth()===month && today.getDate()===d;
+
+    const cell = document.createElement('div');
+    cell.textContent = d;
+    cell.dataset.day = d;
+
+    if (isWk) {
+      cell.className = 'cal-day cal-weekend';
+    } else {
+      // Default: select all weekdays; or restore from storage
+      const sel = stored ? stored.includes(d) : true;
+      cell.className = 'cal-day' + (sel ? ' cal-selected' : '') + (isTd ? ' cal-today' : '');
+      cell.onclick = () => {
+        cell.classList.toggle('cal-selected');
+        updateCalCount();
+      };
+    }
+    grid.appendChild(cell);
+  }
+  updateCalCount();
+}
+
+function updateCalCount() {
+  const sel = document.querySelectorAll('#cal-grid .cal-day.cal-selected').length;
+  document.getElementById('cal-count').textContent = sel;
+}
+
+function openCalendar() {
+  buildCalendar();
+  document.getElementById('cal-modal').classList.remove('hidden');
+}
+
+function confirmCalendar() {
+  const selected = [...document.querySelectorAll('#cal-grid .cal-day.cal-selected')]
+    .map(el => parseInt(el.dataset.day));
+  storeDays(selected);
+  document.getElementById('cal-modal').classList.add('hidden');
+  applyCalendarDays(selected);
   render();
-});
-document.getElementById('days-worked').addEventListener('input', () => {
-  const t = parseInt(document.getElementById('total-days').value) || 21;
-  const w = parseInt(document.getElementById('days-worked').value) || 0;
-  document.getElementById('days-left').value = Math.max(1, t - w);
-  render();
-});
+}
+
+function applyCalendarDays(selectedDays) {
+  const today = new Date();
+  const monthMap = {january:0,february:1,march:2,april:3,may:4,june:5,
+                    july:6,august:7,september:8,october:9,november:10,december:11};
+  const parts = MONTH_LABEL.toLowerCase().split(' ');
+  const month = monthMap[parts[0]];
+  const year  = parseInt(parts[1]);
+
+  const totalDays   = selectedDays.length;
+  const workedDays  = selectedDays.filter(d => {
+    const date = new Date(year, month, d);
+    return date < today || (date.toDateString() === today.toDateString());
+  }).length;
+  const daysLeft = Math.max(1, totalDays - workedDays + 1); // +1 to include today
+
+  document.getElementById('total-days').value  = totalDays;
+  document.getElementById('days-worked').value = workedDays;
+  document.getElementById('days-left').value   = daysLeft;
+
+  // Check if today is the last workday → show EOM banner
+  const maxDay = Math.max(...selectedDays);
+  if (today.getFullYear()===year && today.getMonth()===month && today.getDate()===maxDay) {
+    document.getElementById('eom-banner').classList.remove('hidden');
+  }
+}
+
+function initCalendar() {
+  const stored = getStoredDays();
+  if (stored && stored.length > 0) {
+    // Already set for this month — apply silently
+    applyCalendarDays(stored);
+  } else {
+    // First time this month — show the calendar
+    openCalendar();
+  }
+}
 
 // ─── PASSWORD GATE ────────────────────────────────────────────────────────────
 const CORRECT_PASSWORD = 'bigpicture';
@@ -1001,6 +1199,7 @@ function checkPassword() {
 function initApp() {
   document.getElementById('hdr-date').textContent =
     new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  initCalendar();
   loadData();
   setInterval(loadData, 5 * 60 * 1000);
 }
