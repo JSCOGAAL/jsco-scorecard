@@ -882,9 +882,9 @@ function render() {
             <div class="win-sub">Base daily goal ${fmt(baseDaily)} &nbsp;·&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left in month</div>
           </div>
           <div class="win-base-box">
-            <div class="win-base-label">Catch-up target</div>
-            <div class="win-base-amt">${fmt(catchup)}</div>
-            <div class="win-base-note">÷ ${daysLeft} days remaining</div>
+            <div class="win-base-label">Tomorrow's target</div>
+            <div class="win-base-amt">${daysLeft > 1 ? fmt(Math.max(0, d.budget - d.revenue) / (daysLeft - 1)) : '—'}</div>
+            <div class="win-base-note">${daysLeft > 1 ? 'if you hit today\'s goal' : 'last day of month'}</div>
           </div>
         </div>
 
@@ -938,9 +938,9 @@ function render() {
         <div class="cs-note">Base daily goal ${fmt(totalBase)}</div>
       </div>
       <div class="cs-cell">
-        <div class="cs-label">Catch-up target</div>
-        <div class="cs-value">${fmt(totalCatchup)}</div>
-        <div class="cs-note">${fmt(Math.max(0, BUDGET.total - totalRev))} left ÷ ${daysLeft} day${daysLeft !== 1 ? 's' : ''}</div>
+        <div class="cs-label">Tomorrow's target</div>
+        <div class="cs-value">${daysLeft > 1 ? fmt(Math.max(0, BUDGET.total - totalRev) / (daysLeft - 1)) : '—'}</div>
+        <div class="cs-note">${daysLeft > 1 ? 'updates live as you bill today' : 'last day of month'}</div>
       </div>
       <div class="cs-cell">
         <div class="cs-label">MTD revenue</div>
