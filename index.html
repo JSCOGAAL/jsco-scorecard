@@ -880,7 +880,7 @@ function render() {
           <div class="win-main">
             <div class="win-eyebrow">Need today to win</div>
             <div class="win-amount" style="color:${d.color};">${fmt(catchup)}</div>
-            <div class="win-sub">${fmt(remaining)} left &nbsp;÷&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining</div>
+            <div class="win-sub">${fmt(Math.max(0, baseDaily - d.revenue))} left to hit today's base goal &nbsp;·&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining in month</div>
           </div>
           <div class="win-base-box">
             <div class="win-base-label">Base daily goal</div>
@@ -1152,9 +1152,10 @@ function applyCalendarDays(selectedDays) {
   const totalDays   = selectedDays.length;
   const workedDays  = selectedDays.filter(d => {
     const date = new Date(year, month, d);
-    return date < today || (date.toDateString() === today.toDateString());
+    // Only count days strictly BEFORE today as worked
+    return date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
   }).length;
-  const daysLeft = Math.max(1, totalDays - workedDays + 1); // +1 to include today
+  const daysLeft = Math.max(1, totalDays - workedDays); // today is included in remaining
 
   document.getElementById('total-days').value  = totalDays;
   document.getElementById('days-worked').value = workedDays;
