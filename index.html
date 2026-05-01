@@ -572,6 +572,10 @@ function parseLeads(text) {
 
     leads.push(row);
 
+    // Parse date and mKey here so it's available for all subsequent logic
+    const d = parseDate(row['Date'] || '');
+    const mKey = d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : 'unknown';
+
     // Count TGL vs Marketing for this month
     if (mKey === thisMonth) {
       const techName = (row['Tech Name'] || '').trim();
@@ -591,8 +595,6 @@ function parseLeads(text) {
       continue;
     }
 
-    const d = parseDate(row['Date'] || '');
-    const mKey = d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : 'unknown';
     if (!months[mKey]) months[mKey] = { leads:0, sold:0, rev:0 };
     months[mKey].leads++;
 
