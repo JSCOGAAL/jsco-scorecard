@@ -1142,20 +1142,29 @@ function confirmCalendar() {
 }
 
 function applyCalendarDays(selectedDays) {
-  const today = new Date();
   const monthMap = {january:0,february:1,march:2,april:3,may:4,june:5,
                     july:6,august:7,september:8,october:9,november:10,december:11};
   const parts = MONTH_LABEL.toLowerCase().split(' ');
   const month = monthMap[parts[0]];
   const year  = parseInt(parts[1]);
 
-  const totalDays   = selectedDays.length;
-  const workedDays  = selectedDays.filter(d => {
-    const date = new Date(year, month, d);
-    // Only count days strictly BEFORE today as worked
-    return date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const today     = new Date();
+  const todayY    = today.getFullYear();
+  const todayM    = today.getMonth();
+  const todayD    = today.getDate();
+
+  const totalDays  = selectedDays.length;
+
+  // Days worked = selected days strictly before today
+  const workedDays = selectedDays.filter(d => {
+    if (year !== todayY || month !== todayM) {
+      // Budget month is in the past — all days worked
+      return new Date(year, month, d) < new Date(todayY, todayM, todayD);
+    }
+    return d < todayD;
   }).length;
-  const daysLeft = Math.max(1, totalDays - workedDays); // today is included in remaining
+
+  const daysLeft = Math.max(1, totalDays - workedDays); // includes today
 
   document.getElementById('total-days').value  = totalDays;
   document.getElementById('days-worked').value = workedDays;
@@ -1163,7 +1172,7 @@ function applyCalendarDays(selectedDays) {
 
   // Check if today is the last workday → show EOM banner
   const maxDay = Math.max(...selectedDays);
-  if (today.getFullYear()===year && today.getMonth()===month && today.getDate()===maxDay) {
+  if (todayY === year && todayM === month && todayD === maxDay) {
     document.getElementById('eom-banner').classList.remove('hidden');
   }
 }
