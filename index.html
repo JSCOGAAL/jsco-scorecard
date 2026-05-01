@@ -882,9 +882,8 @@ function render() {
             <div class="win-sub">Base daily goal ${fmt(baseDaily)} &nbsp;·&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left in month</div>
           </div>
           <div class="win-base-box">
-            <div class="win-base-label">Tomorrow's target</div>
+            <div class="win-base-label">Tomorrow's Target</div>
             <div class="win-base-amt">${daysLeft > 1 ? fmt(Math.max(0, d.budget - d.revenue) / (daysLeft - 1)) : '—'}</div>
-            <div class="win-base-note">${daysLeft > 1 ? 'if you hit today\'s goal' : 'last day of month'}</div>
           </div>
         </div>
 
@@ -913,8 +912,8 @@ function render() {
             <div class="cstat-lbl">Conv. Rate</div>
           </div>
           <div class="cstat">
-            <div class="cstat-val">${d.completed}</div>
-            <div class="cstat-lbl">Jobs Done</div>
+            <div class="cstat-val" style="font-size:12px;color:${d.revenue >= d.budget ? 'var(--green-mid)' : 'var(--red)'};">${fmt(Math.max(0, d.budget - d.revenue))}</div>
+            <div class="cstat-lbl">Left To Win Month</div>
           </div>
           <div class="cstat">
             <div class="cstat-val">${d.canceled}</div>
