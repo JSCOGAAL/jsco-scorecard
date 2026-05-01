@@ -473,7 +473,7 @@
   </div>
   <div class="setting-group">
     <span class="setting-label">Days left (incl. today)</span>
-    <input class="setting-input" type="number" id="days-left" value="22" min="1" max="23" readonly style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);">
+    <input class="setting-input" type="number" id="days-left" value="21" min="1" max="23" readonly style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);">
   </div>
   <button class="refresh-btn cal-open-btn" onclick="openCalendar()" style="border-color:rgba(232,96,26,.6);color:#F97316;">📅 Set Work Days</button>
   <div class="spacer"></div>
@@ -824,10 +824,9 @@ function getDepts() {
 function render() {
   if (!liveData) return;
 
-  const totalDays  = parseInt(document.getElementById('total-days').value) || 21;
-  const daysWorked = parseInt(document.getElementById('days-worked').value) || 20;
-  const daysLeft   = Math.max(1, totalDays - daysWorked);
-  document.getElementById('days-left').value = daysLeft;
+  const totalDays  = parseInt(document.getElementById('total-days').value)  || 21;
+  const daysWorked = parseInt(document.getElementById('days-worked').value) || 0;
+  const daysLeft   = parseInt(document.getElementById('days-left').value)   || 21;
 
   const depts     = getDepts();
   const totalRev  = depts.reduce((a,d) => a + d.revenue, 0);
