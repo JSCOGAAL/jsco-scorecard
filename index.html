@@ -183,7 +183,7 @@
   .win-main { min-width: 0; }
   .win-eyebrow { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); margin-bottom: 3px; }
   .win-amount { font-size: 26px; font-weight: 700; letter-spacing: -.03em; line-height: 1; white-space: nowrap; }
-  .win-sub { font-size: 10px; color: var(--text-3); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .win-sub { font-size: 10px; color: var(--text-3); margin-top: 3px; white-space: normal; line-height: 1.4; }
   .win-base-box { text-align: right; flex-shrink: 0; border-left: 1px solid var(--border); padding-left: 10px; }
   .win-base-label { font-size: 9px; color: var(--text-3); margin-bottom: 2px; white-space: nowrap; }
   .win-base-amt { font-size: 15px; font-weight: 700; color: var(--text-2); letter-spacing: -.02em; white-space: nowrap; }
@@ -877,14 +877,14 @@ function render() {
 
         <div class="win-zone">
           <div class="win-main">
-            <div class="win-eyebrow">Need today to win</div>
-            <div class="win-amount" style="color:${d.color};">${fmt(catchup)}</div>
-            <div class="win-sub">${fmt(Math.max(0, baseDaily - d.revenue))} left to hit today's base goal &nbsp;·&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining in month</div>
+            <div class="win-eyebrow">Left to win today</div>
+            <div class="win-amount" style="color:${d.color};">${fmt(Math.max(0, baseDaily - d.revenue))}</div>
+            <div class="win-sub">Base daily goal ${fmt(baseDaily)} &nbsp;·&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left in month</div>
           </div>
           <div class="win-base-box">
-            <div class="win-base-label">Base daily goal</div>
-            <div class="win-base-amt">${fmt(baseDaily)}</div>
-            <div class="win-base-note">÷ ${totalDays} work days</div>
+            <div class="win-base-label">Catch-up target</div>
+            <div class="win-base-amt">${fmt(catchup)}</div>
+            <div class="win-base-note">÷ ${daysLeft} days remaining</div>
           </div>
         </div>
 
@@ -933,14 +933,14 @@ function render() {
     </div>
     <div class="company-strip">
       <div class="cs-cell highlight">
-        <div class="cs-label">Need today (catch-up)</div>
-        <div class="cs-value">${fmt(totalCatchup)}</div>
-        <div class="cs-note">${fmt(Math.max(0, BUDGET.total - totalRev))} left ÷ ${daysLeft} day${daysLeft !== 1 ? 's' : ''}</div>
+        <div class="cs-label">Left to win today</div>
+        <div class="cs-value">${fmt(Math.max(0, totalBase - totalRev))}</div>
+        <div class="cs-note">Base daily goal ${fmt(totalBase)}</div>
       </div>
       <div class="cs-cell">
-        <div class="cs-label">Base daily goal</div>
-        <div class="cs-value">${fmt(totalBase)}</div>
-        <div class="cs-note">$${(BUDGET.total/1000).toFixed(0)}K ÷ ${totalDays} days</div>
+        <div class="cs-label">Catch-up target</div>
+        <div class="cs-value">${fmt(totalCatchup)}</div>
+        <div class="cs-note">${fmt(Math.max(0, BUDGET.total - totalRev))} left ÷ ${daysLeft} day${daysLeft !== 1 ? 's' : ''}</div>
       </div>
       <div class="cs-cell">
         <div class="cs-label">MTD revenue</div>
