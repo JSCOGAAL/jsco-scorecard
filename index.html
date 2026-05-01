@@ -532,6 +532,8 @@ function parseLeads(text) {
 
   const leads = [], reps = {}, months = {};
   let noLeadsThisMonth = 0;
+  let tglLeadsThisMonth = 0;
+  let mktLeadsThisMonth = 0;
 
   // Lock to the budget month from MONTH_LABEL (e.g. "April 2026" → "2026-04")
   const monthMap = {january:'01',february:'02',march:'03',april:'04',may:'05',june:'06',
@@ -569,6 +571,16 @@ function parseLeads(text) {
     }
 
     leads.push(row);
+
+    // Count TGL vs Marketing for this month
+    if (mKey === thisMonth) {
+      const techName = (row['Tech Name'] || '').trim();
+      if (techName.toLowerCase() === 'call in / marketing') {
+        mktLeadsThisMonth++;
+      } else {
+        tglLeadsThisMonth++;
+      }
+    }
 
     // Awaiting assignment: YES lead with no rep assigned yet
     if (!soldBy) {
@@ -614,6 +626,8 @@ function parseLeads(text) {
     avgTicket: totalSold > 0 ? Math.round(totalRev / totalSold) : 0,
     curMonth,
     noLeadsThisMonth,
+    tglLeadsThisMonth,
+    mktLeadsThisMonth,
     allMonths,
     reps,
   };
@@ -977,6 +991,16 @@ function render() {
         <div class="lead-label">Total leads (MTD)</div>
         <div class="lead-value">${leadsData ? leadsData.curMonth.leads : '—'}</div>
         <div class="lead-note">${MONTH_LABEL} goal: ${LEAD_GOALS.installTotal} leads</div>
+      </div>
+      <div class="lead-cell">
+        <div class="lead-label">TGL leads (MTD)</div>
+        <div class="lead-value">${leadsData ? leadsData.tglLeadsThisMonth : '—'}</div>
+        <div class="lead-note">Tech generated</div>
+      </div>
+      <div class="lead-cell">
+        <div class="lead-label">Marketing leads (MTD)</div>
+        <div class="lead-value">${leadsData ? leadsData.mktLeadsThisMonth : '—'}</div>
+        <div class="lead-note">Call in / marketing</div>
       </div>
       <div class="lead-cell">
         <div class="lead-label">Leads / day needed</div>
