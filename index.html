@@ -894,8 +894,8 @@ function render() {
         <div class="win-zone">
           <div class="win-main">
             <div class="win-eyebrow">Left to win today</div>
-            <div class="win-amount" style="color:${d.color};">${fmt(Math.max(0, baseDaily - d.revenue))}</div>
-            <div class="win-sub">Base daily goal ${fmt(baseDaily)} &nbsp;·&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left in month</div>
+            <div class="win-amount" style="color:${d.color};">${fmt(Math.max(0, catchup - Math.max(0, d.revenue - (catchup * (totalDays - daysLeft)))))}</div>
+            <div class="win-sub">Today's target ${fmt(catchup)} &nbsp;·&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left in month</div>
           </div>
           <div class="win-base-box">
             <div class="win-base-label">Tomorrow's Target</div>
@@ -949,8 +949,8 @@ function render() {
     <div class="company-strip">
       <div class="cs-cell highlight">
         <div class="cs-label">Left to win today</div>
-        <div class="cs-value">${fmt(Math.max(0, totalBase - totalRev))}</div>
-        <div class="cs-note">Base daily goal ${fmt(totalBase)}</div>
+        <div class="cs-value">${fmt(Math.max(0, totalCatchup - Math.max(0, totalRev - (totalCatchup * (totalDays - daysLeft)))))}</div>
+        <div class="cs-note">Today's target ${fmt(totalCatchup)}</div>
       </div>
       <div class="cs-cell">
         <div class="cs-label">Tomorrow's target</div>
