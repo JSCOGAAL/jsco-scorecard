@@ -991,7 +991,7 @@ function render() {
     <div class="lead-grid">
       <div class="lead-cell">
         <div class="lead-label">Total leads (MTD)</div>
-        <div class="lead-value">${leadsData ? leadsData.curMonth.leads : '—'}</div>
+        <div class="lead-value">${leadsData ? leadsData.tglLeadsThisMonth + leadsData.mktLeadsThisMonth : '—'}</div>
         <div class="lead-note">${MONTH_LABEL} goal: ${LEAD_GOALS.installTotal} leads</div>
       </div>
       <div class="lead-cell">
