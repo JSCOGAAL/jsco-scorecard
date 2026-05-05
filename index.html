@@ -496,7 +496,8 @@
 <script>
 // ─── CONFIG ─────────────────────────────────────────────────────────────────
 // ─── DATA SOURCES ────────────────────────────────────────────────────────────
-const SHEET_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0Nng0IF0HEA6E22k8tApG_IK-nftaML41H6HGhskPEyJJyo1lYfkZ79dWfmDv2LGaKRqEd4kwt08H/pub?output=csv';
+const TODAY_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0Nng0IF0HEA6E22k8tApG_IK-nftaML41H6HGhskPEyJJyo1lYfkZ79dWfmDv2LGaKRqEd4kwt08H/pub?gid=0&single=true&output=csv';
+const SHEET_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0Nng0IF0HEA6E22k8tApG_IK-nftaML41H6HGhskPEyJJyo1lYfkZ79dWfmDv2LGaKRqEd4kwt08H/pub?gid=11217376&single=true&output=csv';
 const LEADS_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqnTF057TtgSPFKD2PJXyUNj2ruTSrjWsTDO56XGQU0hE269K7ZIxIXFItI7iPmZBHtbSAoKqEdbR5/pub?gid=628204934&single=true&output=csv';
 const REPS_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0NT7lEqqpwrkgoy6vcIuFkgmUA979edn_-ufgaxcbcIQsyho4vTVPGXlA9C1zXEGz-A3Ysy95y1xy/pub?gid=0&single=true&output=csv';
 
@@ -679,14 +680,16 @@ function parseReps(text) {
 async function loadData() {
   setStatus('loading');
   try {
-    // Fetch all three sheets in parallel
-    const [huddle, leadsText, repsText] = await Promise.all([
+    // Fetch all four sheets in parallel
+    const [huddle, todayText, leadsText, repsText] = await Promise.all([
       getCSV(SHEET_URL),
+      getCSV(TODAY_URL),
       getCSV(LEADS_URL),
       getCSV(REPS_URL),
     ]);
     if (!huddle || !huddle.includes('Plumbing')) throw new Error('Bad huddle data');
     liveData  = parseCSV(huddle);
+    todayData = parseCSV(todayText);
     leadsData = parseLeads(leadsText);
     repsData  = parseReps(repsText);
     setStatus('ok');
@@ -729,6 +732,7 @@ BUDGET.total       = BUDGET.residential + BUDGET.plumbing + BUDGET.commercial + 
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let liveData  = null;
+let todayData = null;
 let leadsData = null;
 let repsData  = null;
 
@@ -773,7 +777,12 @@ function sum(keys, field) {
 function getDepts() {
   function merge(keys) {
     return {
-      revenue:   sum(keys, 'Completed Revenue'),
+      revenue:      sum(keys, 'Completed Revenue'),
+      todayRevenue: todayData ? keys.reduce((a,k) => {
+        const row = todayData[k];
+        if (!row) return a;
+        return a + (parseFloat((row['Completed Revenue']||'0').replace(/[$,]/g,'')) || 0);
+      }, 0) : 0,
       opps:      sum(keys, 'Opportunity'),
       conv:      sum(keys, 'Converted Jobs'),
       completed: sum(keys, 'Completed Jobs'),
@@ -894,7 +903,7 @@ function render() {
         <div class="win-zone">
           <div class="win-main">
             <div class="win-eyebrow">Left to win today</div>
-            <div class="win-amount" style="color:${d.color};">${fmt(Math.max(0, catchup - Math.max(0, d.revenue - (catchup * (totalDays - daysLeft)))))}</div>
+            <div class="win-amount" style="color:${d.color};">${fmt(Math.max(0, catchup - d.todayRevenue))}</div>
             <div class="win-sub">Today's target ${fmt(catchup)} &nbsp;·&nbsp; ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left in month</div>
           </div>
           <div class="win-base-box">
@@ -949,7 +958,7 @@ function render() {
     <div class="company-strip">
       <div class="cs-cell highlight">
         <div class="cs-label">Left to win today</div>
-        <div class="cs-value">${fmt(Math.max(0, totalCatchup - Math.max(0, totalRev - (totalCatchup * (totalDays - daysLeft)))))}</div>
+        <div class="cs-value">${fmt(Math.max(0, totalCatchup - depts.reduce((a,d) => a + d.todayRevenue, 0)))}</div>
         <div class="cs-note">Today's target ${fmt(totalCatchup)}</div>
       </div>
       <div class="cs-cell">
