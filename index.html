@@ -781,7 +781,8 @@ function getDepts() {
       todayRevenue: todayData ? keys.reduce((a,k) => {
         const row = todayData[k];
         if (!row) return a;
-        return a + (parseFloat((row['Completed Revenue']||'0').replace(/[$,]/g,'')) || 0);
+        const v = row['Completed Revenue'] || '0';
+        return a + (parseFloat(String(v).replace(/[$,]/g,'')) || 0);
       }, 0) : 0,
       opps:      sum(keys, 'Opportunity'),
       conv:      sum(keys, 'Converted Jobs'),
