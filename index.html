@@ -778,6 +778,7 @@ function getDepts() {
   function merge(keys) {
     return {
       revenue:      sum(keys, 'Completed Revenue'),
+      monthlyPace:  sum(keys, 'Current Monthly Pace'),
       todayRevenue: todayData ? keys.reduce((a,k) => {
         const row = todayData[k];
         if (!row) return a;
@@ -922,9 +923,9 @@ function render() {
             <div class="metric-label">Monthly Goal</div>
             <div class="metric-value">${fmt(d.budget)}</div>
           </div>
-          <div class="metric">
-            <div class="metric-label">Avg Ticket</div>
-            <div class="metric-value">${fmt(avgTicket)}</div>
+          <div class="metric" style="background:${d.monthlyPace >= d.budget ? '#DCFCE7' : d.monthlyPace >= d.budget * 0.8 ? '#FEF3C7' : '#FEE2E2'};">
+            <div class="metric-label" style="color:${d.monthlyPace >= d.budget ? '#15803D' : d.monthlyPace >= d.budget * 0.8 ? '#B45309' : '#B91C1C'};">Projected (pace)</div>
+            <div class="metric-value" style="color:${d.monthlyPace >= d.budget ? '#15803D' : d.monthlyPace >= d.budget * 0.8 ? '#B45309' : '#B91C1C'};">${fmt(d.monthlyPace)}</div>
           </div>
         </div>
 
