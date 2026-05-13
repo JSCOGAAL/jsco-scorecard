@@ -694,7 +694,7 @@ async function loadData() {
     repsData  = parseReps(repsText);
     setStatus('ok');
     document.getElementById('last-updated').textContent =
-      'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
+      'Last fetched ' + new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
     render();
   } catch(e) {
     setStatus('error', e.message || 'Unknown error');
@@ -737,10 +737,23 @@ let leadsData = null;
 let repsData  = null;
 
 
+function getNextUpdate() {
+  const now = new Date();
+  const updates = [
+    new Date(now.getFullYear(), now.getMonth(), now.getDate(),  9, 0, 0),
+    new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0),
+    new Date(now.getFullYear(), now.getMonth(), now.getDate(), 15, 0, 0),
+    new Date(now.getFullYear(), now.getMonth(), now.getDate(), 19, 0, 0),
+  ];
+  const next = updates.find(t => t > now);
+  if (!next) return '9:00 AM tomorrow';
+  return next.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+}
+
 function setStatus(state, msg) {
   const dot  = document.getElementById('status-dot');
   const text = document.getElementById('status-text');
-  if (state === 'ok')         { dot.className='status-dot'; text.textContent='Live'; }
+  if (state === 'ok')         { dot.className='status-dot'; text.textContent='Sheet updates 4x daily · Next: ' + getNextUpdate(); }
   else if (state === 'error') { dot.className='status-dot error'; text.textContent='Error: ' + (msg || 'unknown'); }
   else                        { dot.className='status-dot'; text.textContent='Loading...'; }
 }
