@@ -465,7 +465,7 @@
 <div class="settings-bar">
   <div class="setting-group">
     <span class="setting-label">Work days in month</span>
-    <input class="setting-input" type="number" id="total-days" value="22" min="1" max="23" readonly style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);">
+    <input class="setting-input" type="number" id="total-days" value="21" min="1" max="23" readonly style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);">
   </div>
   <div class="setting-group">
     <span class="setting-label">Days worked so far</span>
@@ -555,16 +555,13 @@ function parseLeads(text) {
 
     const row = {};
     headers.forEach((h, idx) => row[h] = cols[idx] || '');
-    // Date column header is blank in this sheet — read from index 0 directly
     const rowDate = cols[0] || '';
 
     const actualLead = row['Actual Lead']?.trim().toUpperCase();
     const soldBy     = (row['Sold By'] || '').trim();
     const custName   = (row['Customer Name'] || '').trim();
 
-    // Only process confirmed YES leads
     if (actualLead !== 'YES' || !custName) {
-      // Count explicit NO leads for the budget month
       if (actualLead === 'NO' && custName) {
         const d = parseDate(rowDate);
         const mKey = d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : 'unknown';
@@ -575,7 +572,6 @@ function parseLeads(text) {
 
     leads.push(row);
 
-    // Parse date and mKey here so it's available for all subsequent logic
     const d = parseDate(rowDate);
     const mKey = d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : 'unknown';
 
@@ -705,22 +701,22 @@ async function loadData() {
 
 // ─── MAY 2026 BUDGET ─────────────────────────────────────────────────────────
 // To update monthly: swap these 7 numbers, the work days input below, and MONTH_LABEL
-const MONTH_LABEL = 'July 2026'; // ← change this each month
+const MONTH_LABEL = 'August 2026'; // ← change this each month
 
 const BUDGET = {
-  resInstall:  900000,   // Residential Replacement
-  resService:  330000,   // Residential Service + Maintenance combined ($300K + $30K)
+  resInstall:  975000,   // Residential Replacement
+  resService:  230000,   // Residential Service + Maintenance combined ($200K + $30K)
   plumbing:    300000,   // Plumbing
-  commInstall: 528000,   // Commercial Replacement
+  commInstall: 624000,   // Commercial Replacement
   commService: 410000,   // Commercial Service + Maintenance combined ($352K + $58K)
   apartments:  325000,   // Apartments
 };
 
 // Lead goals — pulled directly from the budget file each month
 const LEAD_GOALS = {
-  installTotal:    116,      // # of leads required to meet install goal
-  installPerDay:   5.26,     // leads per day needed
-  installCloses:   75,       // estimated closes
+  installTotal:    122,      // # of leads required to meet install goal
+  installPerDay:   5.82,     // leads per day needed
+  installCloses:   79,       // estimated closes
   serviceTotal:    614,      // # of leads required to meet service goal
   servicePerDay:   29.25,    // leads per day needed
   ptuLeads:        8,        // PTU leads expected
