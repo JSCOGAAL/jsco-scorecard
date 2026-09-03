@@ -465,7 +465,7 @@
 <div class="settings-bar">
   <div class="setting-group">
     <span class="setting-label">Work days in month</span>
-    <input class="setting-input" type="number" id="total-days" value="21" min="1" max="23" readonly style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);">
+    <input class="setting-input" type="number" id="total-days" value="24" min="1" max="23" readonly style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);">
   </div>
   <div class="setting-group">
     <span class="setting-label">Days worked so far</span>
@@ -701,25 +701,25 @@ async function loadData() {
 
 // ─── MAY 2026 BUDGET ─────────────────────────────────────────────────────────
 // To update monthly: swap these 7 numbers, the work days input below, and MONTH_LABEL
-const MONTH_LABEL = 'August 2026'; // ← change this each month
+const MONTH_LABEL = 'September 2026'; // ← change this each month
 
 const BUDGET = {
-  resInstall:  975000,   // Residential Replacement
-  resService:  230000,   // Residential Service + Maintenance combined ($200K + $30K)
-  plumbing:    300000,   // Plumbing
-  commInstall: 624000,   // Commercial Replacement
-  commService: 410000,   // Commercial Service + Maintenance combined ($352K + $58K)
-  apartments:  325000,   // Apartments
+  resInstall:  375000,   // Residential Replacement
+  resService:  193000,   // Residential Service + Maintenance combined ($175K + $18K)
+  plumbing:    270000,   // Plumbing
+  commInstall: 336000,   // Commercial Replacement
+  commService: 392500,   // Commercial Service + Maintenance combined ($320K + $72.5K)
+  apartments:  150000,   // Apartments
 };
 
 // Lead goals — pulled directly from the budget file each month
 const LEAD_GOALS = {
-  installTotal:    122,      // # of leads required to meet install goal
-  installPerDay:   5.82,     // leads per day needed
-  installCloses:   79,       // estimated closes
+  installTotal:    51,       // # of leads required to meet install goal
+  installPerDay:   2.11,     // leads per day needed
+  installCloses:   33,       // estimated closes
   serviceTotal:    614,      // # of leads required to meet service goal
   servicePerDay:   29.25,    // leads per day needed
-  ptuLeads:        8,        // PTU leads expected
+  ptuLeads:        5,        // PTU leads expected
   avgTicket:       13000,    // avg install ticket target
   closeRatePct:    65,       // target close rate %
 };
